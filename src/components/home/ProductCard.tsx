@@ -4,8 +4,10 @@ import { Text } from '@/components/common/Text';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { colors, radii, shadows, typography } from '@/theme/tokens';
 import { PriceChangePill, CATEGORY_ICONS, CATEGORY_ICON_FALLBACK } from '@/components/common';
+import { Sparkline } from '@/components/common/Sparkline';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { formatKES } from '@/utils/format';
+import { getSparklinePoints } from '@/utils/mockData';
 import type { Product } from '@/types';
 
 interface Props {
@@ -63,6 +65,8 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
     transform: [{ scale: scale.value }],
   }));
 
+  const sparkPoints = useMemo(() => getSparklinePoints(product.id), [product.id]);
+
   return (
     <Animated.View
       entering={
@@ -89,7 +93,12 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
           <>
             <ProductThumb product={product} wrapStyle={styles.iconWrap} iconSize={22} />
             <Text style={[styles.name, dyn.name]} numberOfLines={2}>{product.name}</Text>
-            <Text style={[styles.price, dyn.price]}>{formatKES(product.bestPrice)}</Text>
+            <View style={styles.priceRow}>
+              <Text style={[styles.price, dyn.price]}>{formatKES(product.bestPrice)}</Text>
+              {sparkPoints.length > 1 && (
+                <Sparkline points={sparkPoints} width={52} height={22} />
+              )}
+            </View>
             <View style={styles.footer}>
               <Text style={[styles.vendors, dyn.vendors]}>{product.vendorCount} vendors</Text>
               <PriceChangePill pct={product.priceChangePct} />
@@ -102,6 +111,9 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
               <Text style={[styles.hName, dyn.hName]} numberOfLines={1}>{product.name}</Text>
               <Text style={[styles.hMeta, dyn.hMeta]}>{product.category} · {product.vendorCount} vendors</Text>
             </View>
+            {sparkPoints.length > 1 && (
+              <Sparkline points={sparkPoints} width={44} height={18} />
+            )}
             <View style={styles.hRight}>
               <Text style={[styles.hPrice, dyn.hPrice]}>{formatKES(product.bestPrice)}</Text>
               <PriceChangePill pct={product.priceChangePct} />
@@ -151,11 +163,16 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: 20,
   },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   price: {
     fontSize: typography.sizes.lg,
     fontFamily: typography.displayFontMedium,
     color: colors.navy[800],
-    marginBottom: 8,
   },
   footer: {
     flexDirection: 'row',

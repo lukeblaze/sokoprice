@@ -406,7 +406,45 @@ export const MOCK_TRENDS: Record<string, PriceTrend> = {
     period: '30d',
     dataPoints: generateTrend(6400, 30, 0.05),
   },
+  'switch-cisco-sg110': {
+    productId: 'switch-cisco-sg110',
+    period: '30d',
+    dataPoints: generateTrend(12400, 30, 0.04),
+  },
+  'monitor-dell-p2422h': {
+    productId: 'monitor-dell-p2422h',
+    period: '30d',
+    dataPoints: generateTrend(24800, 30, 0.03),
+  },
+  'keyboard-mx-keys': {
+    productId: 'keyboard-mx-keys',
+    period: '30d',
+    dataPoints: generateTrend(9200, 30, 0.02),
+  },
+  'ssd-samsung-870': {
+    productId: 'ssd-samsung-870',
+    period: '30d',
+    dataPoints: generateTrend(11800, 30, 0.06),
+  },
+  'paper-a4-80gsm': {
+    productId: 'paper-a4-80gsm',
+    period: '30d',
+    dataPoints: generateTrend(450, 30, 0.05),
+  },
+  'mouse-logitech-m720': {
+    productId: 'mouse-logitech-m720',
+    period: '30d',
+    dataPoints: generateTrend(7800, 30, 0.03),
+  },
 };
+
+// Compact price history for inline card sparklines — last N points from the
+// full 30-day trend, computed once at module load (not per-render).
+export function getSparklinePoints(productId: string, points = 14): number[] {
+  const trend = MOCK_TRENDS[productId];
+  if (!trend) return [];
+  return trend.dataPoints.slice(-points).map(p => p.avgPrice);
+}
 
 // ─── Ticker ───────────────────────────────────────────────────────────────────
 

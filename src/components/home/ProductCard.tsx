@@ -6,6 +6,7 @@ import { colors, radii, shadows, typography } from '@/theme/tokens';
 import { PriceChangePill, CATEGORY_ICONS, CATEGORY_ICON_FALLBACK } from '@/components/common';
 import { Sparkline } from '@/components/common/Sparkline';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useTilt } from '@/hooks/useTilt';
 import { formatKES } from '@/utils/format';
 import { getSparklinePoints } from '@/utils/mockData';
 import type { Product } from '@/types';
@@ -65,9 +66,11 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
     transform: [{ scale: scale.value }],
   }));
 
+  const tilt = useTilt(5);
   const sparkPoints = useMemo(() => getSparklinePoints(product.id), [product.id]);
 
   return (
+    <Animated.View ref={variant === 'vertical' ? tilt.ref : undefined} style={variant === 'vertical' ? tilt.tiltStyle : undefined}>
     <Animated.View
       entering={
         index !== undefined
@@ -121,6 +124,7 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
           </View>
         )}
       </Pressable>
+    </Animated.View>
     </Animated.View>
   );
 }

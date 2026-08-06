@@ -6,6 +6,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } fr
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorBadgeChip, VendorAvatar } from '@/components/common';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useTilt } from '@/hooks/useTilt';
 import type { Vendor } from '@/types';
 
 interface Props {
@@ -34,8 +35,10 @@ export function VendorCard({ vendor, onPress, style, index }: Props) {
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+  const tilt = useTilt(3);
 
   return (
+    <Animated.View ref={tilt.ref} style={tilt.tiltStyle}>
     <Animated.View
       entering={
         index !== undefined
@@ -77,6 +80,7 @@ export function VendorCard({ vendor, onPress, style, index }: Props) {
           <Text style={[styles.products, dyn.products]}>{vendor.productCount} products</Text>
         </View>
       </Pressable>
+    </Animated.View>
     </Animated.View>
   );
 }

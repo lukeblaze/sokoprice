@@ -34,6 +34,7 @@ import { VendorAvatar, VendorBadgeChip, LoadingSpinner } from '@/components/comm
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { usePressScale } from '@/hooks/usePressScale';
+import { useMagnetic } from '@/hooks/useMagnetic';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Animated from 'react-native-reanimated';
 
@@ -83,6 +84,7 @@ export default function VendorDetailScreen() {
   const toggleSavedVendor = useAppStore(s => s.toggleSavedVendor);
   const isSaved = useAppStore(s => s.isSavedVendor(id));
   const ctaPress = usePressScale();
+  const ctaMagnetic = useMagnetic();
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
@@ -245,6 +247,7 @@ export default function VendorDetailScreen() {
         </View>
 
         {/* CTA */}
+        <Animated.View ref={ctaMagnetic.ref} style={ctaMagnetic.magneticStyle}>
         <Animated.View style={ctaPress.animStyle}>
           <Pressable
             onPress={() => router.push({ pathname: '/(tabs)/search', params: { vendor: vendor.name } })}
@@ -255,6 +258,7 @@ export default function VendorDetailScreen() {
             <TagIcon size={18} color={colors.white} />
             <Text style={styles.ctaBtnText}>View {vendor.productCount} products</Text>
           </Pressable>
+        </Animated.View>
         </Animated.View>
     </>
   );

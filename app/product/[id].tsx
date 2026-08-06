@@ -33,6 +33,7 @@ import { useSkiaWebReady } from '@/utils/skiaWeb';
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { usePressScale } from '@/hooks/usePressScale';
+import { useMagnetic } from '@/hooks/useMagnetic';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Animated from 'react-native-reanimated';
 
@@ -84,6 +85,7 @@ export default function ProductDetailScreen() {
   const [alertSet, setAlertSet] = useState(false);
   const watchlisted = isWatchlisted(id);
   const ctaPress = usePressScale();
+  const ctaMagnetic = useMagnetic();
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
@@ -294,6 +296,7 @@ export default function ProductDetailScreen() {
 
         {/* Alert CTA */}
         <View style={styles.ctaRow}>
+          <Animated.View ref={ctaMagnetic.ref} style={ctaMagnetic.magneticStyle}>
           <Animated.View style={ctaPress.animStyle}>
             <Pressable
               onPress={handleSetAlert}
@@ -310,6 +313,7 @@ export default function ProductDetailScreen() {
                 {alertSet ? 'Alert set' : 'Set price alert'}
               </Text>
             </Pressable>
+          </Animated.View>
           </Animated.View>
         </View>
     </>

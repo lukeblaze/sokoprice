@@ -10,6 +10,10 @@ interface AppState {
   signIn: () => void;
   signOut: () => void;
 
+  // Onboarding — has this session seen the welcome/advert screen yet
+  hasOnboarded: boolean;
+  completeOnboarding: () => void;
+
   // Preferences
   colorScheme: 'light' | 'dark' | 'system';
   setColorScheme: (scheme: 'light' | 'dark' | 'system') => void;
@@ -76,6 +80,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     watchlistIds: new Set(),
     savedVendorIds: new Set(),
   })),
+
+  hasOnboarded: false,
+  completeOnboarding: () => set({ hasOnboarded: true }),
 
   // Preferences
   colorScheme: 'light',

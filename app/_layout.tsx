@@ -20,6 +20,7 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
+import { Anton_400Regular } from '@expo-google-fonts/anton';
 import { lightTheme, darkTheme } from '@/theme';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/store';
@@ -43,6 +44,7 @@ export default function RootLayout() {
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
+    Anton_400Regular,
   });
 
   const colorScheme = useAppStore(s => s.colorScheme);
@@ -67,6 +69,7 @@ export default function RootLayout() {
             <StatusBar style="light" backgroundColor={colors.navy[800]} />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
+              <Stack.Screen name="welcome" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen
                 name="(auth)"

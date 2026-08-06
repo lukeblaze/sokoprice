@@ -6,6 +6,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Text } from '@/components/common/Text';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BellIcon,
@@ -24,6 +25,23 @@ import {
 import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { showMessage } from 'react-native-flash-message';
+import { useRef } from 'react';
+import { PickerSheet, type PickerSheetHandle } from '@/components/common/PickerSheet';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
+
+const NAIROBI_AREAS = ['Nairobi CBD', 'Westlands', 'Kilimani', 'Upper Hill', 'Ngara', 'Kileleshwa'];
+const CURRENCIES = [
+  { label: 'Kenyan Shilling (KES)', value: 'KES' },
+  { label: 'US Dollar (USD)', value: 'USD' },
+  { label: 'Euro (EUR)', value: 'EUR' },
+];
+const APPEARANCES = [
+  { label: 'Light', value: 'light' },
+  { label: 'Dark', value: 'dark' },
+  { label: 'System', value: 'system' },
+];
 
 interface SettingsRowProps {
   icon: React.ComponentType<IconProps>;
@@ -33,16 +51,18 @@ interface SettingsRowProps {
   danger?: boolean;
   iconBg?: string;
   iconColor?: string;
+  comingSoon?: boolean;
 }
 
-function SettingsRow({ icon: Icon, label, value, onPress, danger, iconBg, iconColor }: SettingsRowProps) {
+function SettingsRow({ icon: Icon, label, value, onPress, danger, iconBg, iconColor, comingSoon }: SettingsRowProps) {
   return (
-    <Pressable onPress={onPress} style={styles.settingsRow}>
+    <Pressable onPress={onPress} style={[styles.settingsRow, comingSoon && styles.settingsRowDisabled]}>
       <View style={[styles.settingsIcon, { backgroundColor: iconBg ?? colors.gray[100] }]}>
         <Icon size={17} color={iconColor ?? colors.gray[500]} />
       </View>
       <Text style={[styles.settingsLabel, danger && { color: colors.red[500] }]}>{label}</Text>
       <View style={styles.settingsRight}>
+        {comingSoon && <Text style={styles.comingSoonTag}>Soon</Text>}
         {value && <Text style={styles.settingsValue}>{value}</Text>}
         <CaretRightIcon size={14} color={colors.gray[300]} />
       </View>
@@ -56,8 +76,64 @@ export default function ProfileScreen() {
   const alerts = useAppStore(s => s.alerts);
   const watchlistIds = useAppStore(s => s.watchlistIds);
   const savedVendorIds = useAppStore(s => s.savedVendorIds);
+  const colorScheme = useAppStore(s => s.colorScheme);
+  const setColorScheme = useAppStore(s => s.setColorScheme);
+  const setUserLocation = useAppStore(s => s.setUserLocation);
+  const setUserCurrency = useAppStore(s => s.setUserCurrency);
+  const signOut = useAppStore(s => s.signOut);
+
+  const locationSheet = useRef<PickerSheetHandle>(null);
+  const currencySheet = useRef<PickerSheetHandle>(null);
+  const appearanceSheet = useRef<PickerSheetHandle>(null);
 
   const initials = user?.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() ?? 'BL';
+
+  const handleComingSoon = () => showMessage({ message: 'Coming soon', type: 'info' });
+
+  const handleExport = async () => {
+    const lines = [
+      'SokoPrice — Price Alerts & Watchlist Export',
+      `Generated: ${new Date().toLocaleString()}`,
+      '',
+      `Price alerts (${alerts.length}):`,
+      ...alerts.map(a => `  - ${a.productName}: alert ${a.direction} KES ${a.targetPrice.toLocaleString()} (now KES ${a.currentPrice.toLocaleString()})`),
+      '',
+      `Watchlist (${watchlistIds.size} products): ${Array.from(watchlistIds).join(', ') || 'none'}`,
+    ].join('\n');
+
+    if (Platform.OS === 'web') {
+      if (typeof navigator !== 'undefined' && (navigator as any).share) {
+        try {
+          await (navigator as any).share({ title: 'SokoPrice export', text: lines });
+        } catch {
+          // user cancelled — no-op
+        }
+      } else if (typeof document !== 'undefined') {
+        const blob = new Blob([lines], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sokoprice-export.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      return;
+    }
+
+    const fileUri = `${FileSystem.cacheDirectory}sokoprice-export.txt`;
+    await FileSystem.writeAsStringAsync(fileUri, lines);
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri);
+    } else {
+      showMessage({ message: 'Sharing is not available on this device', type: 'warning' });
+    }
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    showMessage({ message: 'Signed out', type: 'info' });
+    router.replace('/(auth)/login');
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -97,7 +173,7 @@ export default function ProfileScreen() {
             value={`${alerts.length} active`}
             iconBg={colors.amber[50]}
             iconColor={colors.amber[600]}
-            onPress={() => {}}
+            onPress={() => router.push('/(tabs)/alerts')}
           />
           <View style={styles.divider} />
           <SettingsRow
@@ -106,7 +182,7 @@ export default function ProfileScreen() {
             value={`${watchlistIds.size} products`}
             iconBg={colors.red[50]}
             iconColor={colors.red[500]}
-            onPress={() => {}}
+            onPress={() => router.push({ pathname: '/(tabs)/search', params: { mode: 'watchlist' } })}
           />
           <View style={styles.divider} />
           <SettingsRow
@@ -115,7 +191,7 @@ export default function ProfileScreen() {
             value={`${savedVendorIds.size} vendors`}
             iconBg={colors.green[50]}
             iconColor={colors.green[600]}
-            onPress={() => {}}
+            onPress={() => router.push({ pathname: '/(tabs)/vendors', params: { mode: 'saved' } })}
           />
         </View>
 
@@ -124,22 +200,22 @@ export default function ProfileScreen() {
           <SettingsRow
             icon={MapPinIcon}
             label="Location"
-            value="Nairobi CBD"
-            onPress={() => {}}
+            value={user?.location ?? 'Nairobi CBD'}
+            onPress={() => locationSheet.current?.present()}
           />
           <View style={styles.divider} />
           <SettingsRow
             icon={CurrencyCircleDollarIcon}
             label="Currency"
-            value="KES"
-            onPress={() => {}}
+            value={user?.currency ?? 'KES'}
+            onPress={() => currencySheet.current?.present()}
           />
           <View style={styles.divider} />
           <SettingsRow
             icon={MoonIcon}
             label="Appearance"
-            value="Light"
-            onPress={() => {}}
+            value={colorScheme.charAt(0).toUpperCase() + colorScheme.slice(1)}
+            onPress={() => appearanceSheet.current?.present()}
           />
         </View>
 
@@ -150,16 +226,17 @@ export default function ProfileScreen() {
             label="Business details"
             iconBg={colors.navy[50]}
             iconColor={colors.navy[600]}
-            onPress={() => {}}
+            onPress={handleComingSoon}
+            comingSoon
           />
           <View style={styles.divider} />
           <SettingsRow
             icon={UsersThreeIcon}
             label="Team members"
-            value="1 member"
             iconBg={colors.navy[50]}
             iconColor={colors.navy[600]}
-            onPress={() => {}}
+            onPress={handleComingSoon}
+            comingSoon
           />
           <View style={styles.divider} />
           <SettingsRow
@@ -167,7 +244,7 @@ export default function ProfileScreen() {
             label="Export price history"
             iconBg={colors.navy[50]}
             iconColor={colors.navy[600]}
-            onPress={() => showMessage({ message: 'Export started', type: 'success' })}
+            onPress={handleExport}
           />
         </View>
 
@@ -179,13 +256,35 @@ export default function ProfileScreen() {
             danger
             iconBg={colors.red[50]}
             iconColor={colors.red[500]}
-            onPress={() => showMessage({ message: 'Signed out', type: 'info' })}
+            onPress={handleSignOut}
           />
         </View>
 
         {/* Version */}
         <Text style={styles.version}>SokoPrice v1.0.0 · Blaze Solutions Ltd</Text>
       </ScrollView>
+
+      <PickerSheet
+        ref={locationSheet}
+        title="Location"
+        options={NAIROBI_AREAS.map(a => ({ label: a, value: a }))}
+        value={user?.location ?? 'Nairobi CBD'}
+        onSelect={setUserLocation}
+      />
+      <PickerSheet
+        ref={currencySheet}
+        title="Currency"
+        options={CURRENCIES}
+        value={user?.currency ?? 'KES'}
+        onSelect={v => setUserCurrency(v as 'KES' | 'USD' | 'EUR')}
+      />
+      <PickerSheet
+        ref={appearanceSheet}
+        title="Appearance"
+        options={APPEARANCES}
+        value={colorScheme}
+        onSelect={v => setColorScheme(v as 'light' | 'dark' | 'system')}
+      />
     </View>
   );
 }
@@ -272,6 +371,19 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
+  },
+  settingsRowDisabled: {
+    opacity: 0.5,
+  },
+  comingSoonTag: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.gray[500],
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radii.full,
+    textTransform: 'uppercase',
   },
   settingsIcon: {
     width: 32,

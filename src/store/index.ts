@@ -7,6 +7,14 @@ interface AppState {
   // Auth
   isAuthenticated: boolean;
   user: UserProfile | null;
+  signIn: () => void;
+  signOut: () => void;
+
+  // Preferences
+  colorScheme: 'light' | 'dark' | 'system';
+  setColorScheme: (scheme: 'light' | 'dark' | 'system') => void;
+  setUserLocation: (location: string) => void;
+  setUserCurrency: (currency: UserProfile['currency']) => void;
 
   // Watchlist
   watchlistIds: Set<string>;
@@ -62,6 +70,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     savedVendorCount: 1,
     createdAt: '2024-01-01T00:00:00Z',
   },
+  signIn: () => set({ isAuthenticated: true }),
+  signOut: () => set(s => ({
+    isAuthenticated: false,
+    watchlistIds: new Set(),
+    savedVendorIds: new Set(),
+  })),
+
+  // Preferences
+  colorScheme: 'light',
+  setColorScheme: (scheme) => set({ colorScheme: scheme }),
+  setUserLocation: (location) => set(s => ({ user: s.user ? { ...s.user, location } : s.user })),
+  setUserCurrency: (currency) => set(s => ({ user: s.user ? { ...s.user, currency } : s.user })),
 
   // Watchlist
   watchlistIds: new Set(['laptop-hp-840', 'ups-apc-650va']),

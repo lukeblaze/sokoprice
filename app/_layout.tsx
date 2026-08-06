@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { View, useColorScheme as useSystemColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import FlashMessage from 'react-native-flash-message';
@@ -19,8 +20,9 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
-import { lightTheme } from '@/theme';
+import { lightTheme, darkTheme } from '@/theme';
 import { colors } from '@/theme/tokens';
+import { useAppStore } from '@/store';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,6 +44,10 @@ export default function RootLayout() {
     Inter_600SemiBold,
   });
 
+  const colorScheme = useAppStore(s => s.colorScheme);
+  const systemScheme = useSystemColorScheme();
+  const isDark = colorScheme === 'system' ? systemScheme === 'dark' : colorScheme === 'dark';
+
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
@@ -55,7 +61,8 @@ export default function RootLayout() {
       <IconContext.Provider value={{ weight: 'duotone' }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <PaperProvider theme={lightTheme}>
+          <PaperProvider theme={isDark ? darkTheme : lightTheme}>
+            <BottomSheetModalProvider>
             <StatusBar style="light" backgroundColor={colors.navy[800]} />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
@@ -80,6 +87,7 @@ export default function RootLayout() {
               />
             </Stack>
             <FlashMessage position="top" />
+            </BottomSheetModalProvider>
           </PaperProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

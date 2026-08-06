@@ -13,9 +13,11 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EnvelopeSimpleIcon, LockIcon, EyeIcon, EyeSlashIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
+import { useAppStore } from '@/store';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const signIn = useAppStore(s => s.signIn);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +28,7 @@ export default function LoginScreen() {
     // Simulate auth — replace with real API call
     await new Promise(r => setTimeout(r, 800));
     setLoading(false);
+    signIn();
     router.replace('/(tabs)');
   };
 
@@ -118,7 +121,7 @@ export default function LoginScreen() {
         </View>
 
         {/* Skip for demo */}
-        <Pressable onPress={() => router.replace('/(tabs)')} style={styles.skipBtn}>
+        <Pressable onPress={() => { signIn(); router.replace('/(tabs)'); }} style={styles.skipBtn}>
           <Text style={styles.skipText}>Continue as guest →</Text>
         </Pressable>
       </ScrollView>

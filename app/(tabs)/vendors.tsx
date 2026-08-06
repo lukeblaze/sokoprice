@@ -7,22 +7,28 @@ import {
   Pressable,
 } from 'react-native';
 import { Text } from '@/components/common/Text';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SlidersHorizontalIcon, MagnifyingGlassIcon, XCircleIcon } from 'phosphor-react-native';
 import { useVendors, useVendorSearch } from '@/hooks/useQueries';
+import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorCard } from '@/components/vendors/VendorCard';
 import { LoadingSpinner, EmptyState } from '@/components/common';
 
 export default function VendorsScreen() {
   const insets = useSafeAreaInsets();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isSavedMode = mode === 'saved';
   const [query, setQuery] = useState('');
+  const savedVendorIds = useAppStore(s => s.savedVendorIds);
 
   const { data: allVendors, isLoading } = useVendors();
   const { data: searchResults } = useVendorSearch(query);
 
-  const vendors = query.trim() ? searchResults : allVendors;
+  const vendors = isSavedMode
+    ? allVendors?.filter(v => savedVendorIds.has(v.id))
+    : query.trim() ? searchResults : allVendors;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -30,13 +36,16 @@ export default function VendorsScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.subtitle}>Nairobi market</Text>
-            <Text style={styles.title}>Vendors</Text>
+            <Text style={styles.subtitle}>{isSavedMode ? 'Your favorites' : 'Nairobi market'}</Text>
+            <Text style={styles.title}>{isSavedMode ? 'Saved vendors' : 'Vendors'}</Text>
           </View>
+          {!isSavedMode && (
           <Pressable style={styles.filterBtn}>
             <SlidersHorizontalIcon size={18} color={colors.white} />
           </Pressable>
+          )}
         </View>
+        {!isSavedMode && (
         <View style={styles.searchWrap}>
           <MagnifyingGlassIcon size={16} color="rgba(255,255,255,0.45)" />
           <TextInput
@@ -53,18 +62,26 @@ export default function VendorsScreen() {
             </Pressable>
           )}
         </View>
+        )}
       </View>
 
       {/* List */}
       {isLoading ? (
         <LoadingSpinner />
       ) : !vendors || vendors.length === 0 ? (
-        <EmptyState
-          title="No vendors found"
-          subtitle="Try searching with different terms."
-          actionLabel="Clear search"
-          onAction={() => setQuery('')}
-        />
+        isSavedMode ? (
+          <EmptyState
+            title="No saved vendors yet"
+            subtitle="Tap the bookmark icon on any vendor page to save it here."
+          />
+        ) : (
+          <EmptyState
+            title="No vendors found"
+            subtitle="Try searching with different terms."
+            actionLabel="Clear search"
+            onAction={() => setQuery('')}
+          />
+        )
       ) : (
         <FlatList
           data={vendors}
@@ -73,7 +90,7 @@ export default function VendorsScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <Text style={styles.count}>
-              {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} in Nairobi
+              {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} {isSavedMode ? 'saved' : 'in Nairobi'}
             </Text>
           }
           renderItem={({ item }) => (

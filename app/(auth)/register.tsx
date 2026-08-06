@@ -13,9 +13,11 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon, UserIcon, BuildingsIcon, PhoneIcon, EnvelopeSimpleIcon, LockIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
+import { useAppStore } from '@/store';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
+  const signIn = useAppStore(s => s.signIn);
   const [form, setForm] = useState({
     name: '',
     businessName: '',
@@ -31,6 +33,7 @@ export default function RegisterScreen() {
     setLoading(true);
     await new Promise(r => setTimeout(r, 900));
     setLoading(false);
+    signIn();
     router.replace('/(tabs)');
   };
 

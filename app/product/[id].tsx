@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import {
   View,
   StyleSheet,
@@ -28,112 +28,37 @@ import { useAppStore } from '@/store';
 import { colors, radii, typography, shadows } from '@/theme/tokens';
 import { TagChip, VendorBadgeChip, LoadingSpinner } from '@/components/common';
 import { formatKES, formatPriceChange, pricePercentage, formatShortDate } from '@/utils/format';
+import { useSkiaWebReady } from '@/utils/skiaWeb';
 
-// Victory Native chart requires Skia — stub for non-Skia envs
-// In production replace with: import { CartesianChart, Line } from 'victory-native';
+// Deferred until Skia's CanvasKit WASM is confirmed ready (web) — importing
+// victory-native/@shopify/react-native-skia any earlier binds their Skia
+// primitives before CanvasKit exists and crashes the whole screen.
+const LazyPriceChart = lazy(() => import('@/components/product/PriceChart'));
 
-function PriceChart({ dataPoints }: { dataPoints: Array<{ date: string; avgPrice: number }> }) {
-  if (!dataPoints || dataPoints.length === 0) return null;
-
-  const prices = dataPoints.map(d => d.avgPrice);
-  const minP = Math.min(...prices);
-  const maxP = Math.max(...prices);
-  const range = maxP - minP || 1;
-  const W = 300;
-  const H = 80;
-  const pad = 8;
-
-  const points = dataPoints.map((d, i) => ({
-    x: pad + (i / (dataPoints.length - 1)) * (W - pad * 2),
-    y: H - pad - ((d.avgPrice - minP) / range) * (H - pad * 2),
-  }));
-
-  const pathD = points.reduce((acc, p, i) => {
-    if (i === 0) return `M ${p.x} ${p.y}`;
-    const prev = points[i - 1];
-    const cx = (prev.x + p.x) / 2;
-    return `${acc} C ${cx} ${prev.y}, ${cx} ${p.y}, ${p.x} ${p.y}`;
-  }, '');
-
+function PriceChartLoading() {
   return (
-    <View style={chartStyles.wrap}>
-      <View style={chartStyles.labels}>
-        <Text style={chartStyles.label}>{formatKES(maxP)}</Text>
-        <Text style={chartStyles.label}>{formatKES(minP)}</Text>
-      </View>
-      <View style={chartStyles.svgWrap}>
-        {/* SVG-like path drawn via border for simplicity */}
-        <View style={chartStyles.lineChart}>
-          {prices.map((price, i) => {
-            if (i === 0) return null;
-            const pct = ((price - minP) / range) * 100;
-            return (
-              <View
-                key={i}
-                style={[
-                  chartStyles.bar,
-                  {
-                    height: Math.max(2, (pct / 100) * 60),
-                    backgroundColor: price <= Math.min(...prices.slice(0, i + 1))
-                      ? colors.green[400]
-                      : colors.amber[400],
-                    opacity: 0.6 + (i / prices.length) * 0.4,
-                  },
-                ]}
-              />
-            );
-          })}
-        </View>
-        <View style={chartStyles.xLabels}>
-          {[0, Math.floor(dataPoints.length / 2), dataPoints.length - 1].map(idx => (
-            <Text key={idx} style={chartStyles.xLabel}>
-              {formatShortDate(dataPoints[idx]?.date ?? '')}
-            </Text>
-          ))}
-        </View>
-      </View>
+    <View style={chartStyles.canvasLoading}>
+      <LoadingSpinner size={20} />
     </View>
   );
 }
 
+function PriceChart({ dataPoints }: { dataPoints: Array<{ date: string; avgPrice: number }> }) {
+  const skiaReady = useSkiaWebReady();
+  if (!dataPoints || dataPoints.length === 0) return null;
+  if (!skiaReady) return <PriceChartLoading />;
+  return (
+    <Suspense fallback={<PriceChartLoading />}>
+      <LazyPriceChart dataPoints={dataPoints} />
+    </Suspense>
+  );
+}
+
 const chartStyles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-end',
-  },
-  labels: {
-    justifyContent: 'space-between',
-    height: 80,
-    paddingBottom: 20,
-  },
-  label: {
-    fontSize: 10,
-    color: colors.gray[400],
-  },
-  svgWrap: {
-    flex: 1,
-  },
-  lineChart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 3,
-    height: 60,
-    paddingHorizontal: 4,
-  },
-  bar: {
-    flex: 1,
-    borderRadius: 2,
-  },
-  xLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    marginTop: 6,
-  },
-  xLabel: {
-    fontSize: 10,
-    color: colors.gray[400],
+  canvasLoading: {
+    height: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

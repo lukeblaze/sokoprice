@@ -1,8 +1,7 @@
 import { Redirect } from 'expo-router';
+import { useAppStore } from '@/store';
 
-// In production: check SecureStore for auth token
-// and redirect to login if not authenticated.
-// For now, go straight to the main app.
 export default function Index() {
-  return <Redirect href="/(tabs)" />;
+  const isAuthenticated = useAppStore(s => s.isAuthenticated);
+  return <Redirect href={isAuthenticated ? '/(tabs)' : '/(auth)/login'} />;
 }

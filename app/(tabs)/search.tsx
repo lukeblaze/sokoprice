@@ -8,10 +8,10 @@ import {
   FlatList,
 } from 'react-native';
 import { Text } from '@/components/common/Text';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MagnifyingGlassIcon, XCircleIcon, ClockIcon, ArrowBendUpLeftIcon } from 'phosphor-react-native';
-import { useProductSearch } from '@/hooks/useQueries';
+import { useProductSearch, useProducts } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { ProductCard } from '@/components/home/ProductCard';
@@ -30,17 +30,25 @@ const CATEGORIES: Array<ProductCategory | 'All'> = [
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isWatchlistMode = mode === 'watchlist';
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
 
   const recentSearches = useAppStore(s => s.recentSearches);
   const addRecentSearch = useAppStore(s => s.addRecentSearch);
   const clearRecentSearches = useAppStore(s => s.clearRecentSearches);
+  const watchlistIds = useAppStore(s => s.watchlistIds);
 
-  const { data: results, isLoading } = useProductSearch(
+  const { data: searchResults, isLoading: searchLoading } = useProductSearch(
     query,
     activeCategory === 'All' ? undefined : activeCategory
   );
+  const { data: allProducts, isLoading: allLoading } = useProducts();
+
+  const watchlistResults = allProducts?.filter(p => watchlistIds.has(p.id));
+  const results = isWatchlistMode ? watchlistResults : searchResults;
+  const isLoading = isWatchlistMode ? allLoading : searchLoading;
 
   const handleSearch = useCallback((text: string) => {
     setQuery(text);
@@ -59,14 +67,14 @@ export default function SearchScreen() {
     setQuery(q);
   }, []);
 
-  const showEmpty = query.length === 0 && activeCategory === 'All';
-  const showResults = !showEmpty;
+  const showEmpty = !isWatchlistMode && query.length === 0 && activeCategory === 'All';
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Find prices</Text>
+        <Text style={styles.title}>{isWatchlistMode ? 'Watchlist' : 'Find prices'}</Text>
+        {!isWatchlistMode && (
         <View style={styles.searchWrap}>
           <MagnifyingGlassIcon size={16} color={colors.gray[400]} />
           <TextInput
@@ -84,9 +92,11 @@ export default function SearchScreen() {
             </Pressable>
           )}
         </View>
+        )}
       </View>
 
       {/* Category filter chips */}
+      {!isWatchlistMode && (
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -105,6 +115,7 @@ export default function SearchScreen() {
           </Pressable>
         ))}
       </ScrollView>
+      )}
 
       {/* Content */}
       {showEmpty ? (
@@ -151,12 +162,19 @@ export default function SearchScreen() {
       ) : isLoading ? (
         <LoadingSpinner />
       ) : !results || results.length === 0 ? (
-        <EmptyState
-          title="No products found"
-          subtitle={`No results for "${query}" in ${activeCategory}. Try a different search.`}
-          actionLabel="Clear search"
-          onAction={() => { setQuery(''); setActiveCategory('All'); }}
-        />
+        isWatchlistMode ? (
+          <EmptyState
+            title="No watchlisted products yet"
+            subtitle="Tap the heart icon on any product to add it to your watchlist."
+          />
+        ) : (
+          <EmptyState
+            title="No products found"
+            subtitle={`No results for "${query}" in ${activeCategory}. Try a different search.`}
+            actionLabel="Clear search"
+            onAction={() => { setQuery(''); setActiveCategory('All'); }}
+          />
+        )
       ) : (
         <FlatList
           data={results}

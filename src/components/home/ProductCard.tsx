@@ -1,0 +1,170 @@
+import React, { useState } from 'react';
+import { View, Pressable, StyleSheet, Image } from 'react-native';
+import { Text } from '@/components/common/Text';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { colors, radii, shadows, typography } from '@/theme/tokens';
+import { PriceChangePill, CATEGORY_ICONS, CATEGORY_ICON_FALLBACK } from '@/components/common';
+import { formatKES } from '@/utils/format';
+import type { Product } from '@/types';
+
+interface Props {
+  product: Product;
+  onPress: () => void;
+  variant?: 'horizontal' | 'vertical';
+}
+
+function ProductThumb({ product, wrapStyle, iconSize }: {
+  product: Product;
+  wrapStyle: object;
+  iconSize: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  const CategoryIcon = CATEGORY_ICONS[product.category] ?? CATEGORY_ICON_FALLBACK;
+
+  return (
+    <View style={wrapStyle}>
+      {product.imageUrl && !failed ? (
+        <Image
+          source={{ uri: product.imageUrl }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <CategoryIcon size={iconSize} color={colors.amber[600]} />
+      )}
+    </View>
+  );
+}
+
+export function ProductCard({ product, onPress, variant = 'vertical' }: Props) {
+  const scale = useSharedValue(1);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[variant === 'vertical' ? styles.cardVertical : styles.cardHorizontal, animStyle]}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => { scale.value = withSpring(0.97, { damping: 15 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 15 }); }}
+        style={styles.inner}
+      >
+        {variant === 'vertical' ? (
+          <>
+            <ProductThumb product={product} wrapStyle={styles.iconWrap} iconSize={22} />
+            <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
+            <Text style={styles.price}>{formatKES(product.bestPrice)}</Text>
+            <View style={styles.footer}>
+              <Text style={styles.vendors}>{product.vendorCount} vendors</Text>
+              <PriceChangePill pct={product.priceChangePct} />
+            </View>
+          </>
+        ) : (
+          <View style={styles.hRow}>
+            <ProductThumb product={product} wrapStyle={styles.iconWrapSmall} iconSize={18} />
+            <View style={styles.hInfo}>
+              <Text style={styles.hName} numberOfLines={1}>{product.name}</Text>
+              <Text style={styles.hMeta}>{product.category} · {product.vendorCount} vendors</Text>
+            </View>
+            <View style={styles.hRight}>
+              <Text style={styles.hPrice}>{formatKES(product.bestPrice)}</Text>
+              <PriceChangePill pct={product.priceChangePct} />
+            </View>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  cardVertical: {
+    width: 160,
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    borderWidth: 0.5,
+    borderColor: colors.gray[200],
+    ...shadows.sm,
+  },
+  cardHorizontal: {
+    backgroundColor: colors.white,
+    borderBottomWidth: 0.5,
+    borderColor: colors.gray[100],
+  },
+  inner: {
+    padding: 14,
+  },
+  iconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.md,
+    backgroundColor: colors.amber[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  name: {
+    fontSize: typography.sizes.base,
+    fontWeight: '500',
+    color: colors.navy[800],
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  price: {
+    fontSize: typography.sizes.lg,
+    fontFamily: typography.displayFontMedium,
+    color: colors.navy[800],
+    marginBottom: 8,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  vendors: {
+    fontSize: typography.sizes.xs,
+    color: colors.gray[500],
+  },
+  // Horizontal
+  hRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconWrapSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.md,
+    backgroundColor: colors.amber[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    overflow: 'hidden',
+  },
+  hInfo: {
+    flex: 1,
+  },
+  hName: {
+    fontSize: typography.sizes.base,
+    fontWeight: '500',
+    color: colors.navy[800],
+    marginBottom: 3,
+  },
+  hMeta: {
+    fontSize: typography.sizes.xs,
+    color: colors.gray[500],
+  },
+  hRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  hPrice: {
+    fontSize: typography.sizes.md,
+    fontFamily: typography.displayFontMedium,
+    color: colors.navy[800],
+  },
+});

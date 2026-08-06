@@ -1,0 +1,662 @@
+import React, { useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  Linking,
+  Image,
+} from 'react-native';
+import { Text } from '@/components/common/Text';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  ArrowLeftIcon,
+  HeartIcon,
+  ShareNetworkIcon,
+  StorefrontIcon,
+  WhatsappLogoIcon,
+  PhoneIcon,
+  CheckCircleIcon,
+  BellIcon,
+} from 'phosphor-react-native';
+import { showMessage } from 'react-native-flash-message';
+import * as Haptics from 'expo-haptics';
+import { useProduct, useProductTrend, useVendorListings } from '@/hooks/useQueries';
+import { useAppStore } from '@/store';
+import { colors, radii, typography, shadows } from '@/theme/tokens';
+import { TagChip, VendorBadgeChip, LoadingSpinner } from '@/components/common';
+import { formatKES, formatPriceChange, pricePercentage, formatShortDate } from '@/utils/format';
+
+// Victory Native chart requires Skia — stub for non-Skia envs
+// In production replace with: import { CartesianChart, Line } from 'victory-native';
+
+function PriceChart({ dataPoints }: { dataPoints: Array<{ date: string; avgPrice: number }> }) {
+  if (!dataPoints || dataPoints.length === 0) return null;
+
+  const prices = dataPoints.map(d => d.avgPrice);
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+  const W = 300;
+  const H = 80;
+  const pad = 8;
+
+  const points = dataPoints.map((d, i) => ({
+    x: pad + (i / (dataPoints.length - 1)) * (W - pad * 2),
+    y: H - pad - ((d.avgPrice - minP) / range) * (H - pad * 2),
+  }));
+
+  const pathD = points.reduce((acc, p, i) => {
+    if (i === 0) return `M ${p.x} ${p.y}`;
+    const prev = points[i - 1];
+    const cx = (prev.x + p.x) / 2;
+    return `${acc} C ${cx} ${prev.y}, ${cx} ${p.y}, ${p.x} ${p.y}`;
+  }, '');
+
+  return (
+    <View style={chartStyles.wrap}>
+      <View style={chartStyles.labels}>
+        <Text style={chartStyles.label}>{formatKES(maxP)}</Text>
+        <Text style={chartStyles.label}>{formatKES(minP)}</Text>
+      </View>
+      <View style={chartStyles.svgWrap}>
+        {/* SVG-like path drawn via border for simplicity */}
+        <View style={chartStyles.lineChart}>
+          {prices.map((price, i) => {
+            if (i === 0) return null;
+            const pct = ((price - minP) / range) * 100;
+            return (
+              <View
+                key={i}
+                style={[
+                  chartStyles.bar,
+                  {
+                    height: Math.max(2, (pct / 100) * 60),
+                    backgroundColor: price <= Math.min(...prices.slice(0, i + 1))
+                      ? colors.green[400]
+                      : colors.amber[400],
+                    opacity: 0.6 + (i / prices.length) * 0.4,
+                  },
+                ]}
+              />
+            );
+          })}
+        </View>
+        <View style={chartStyles.xLabels}>
+          {[0, Math.floor(dataPoints.length / 2), dataPoints.length - 1].map(idx => (
+            <Text key={idx} style={chartStyles.xLabel}>
+              {formatShortDate(dataPoints[idx]?.date ?? '')}
+            </Text>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const chartStyles = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-end',
+  },
+  labels: {
+    justifyContent: 'space-between',
+    height: 80,
+    paddingBottom: 20,
+  },
+  label: {
+    fontSize: 10,
+    color: colors.gray[400],
+  },
+  svgWrap: {
+    flex: 1,
+  },
+  lineChart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 3,
+    height: 60,
+    paddingHorizontal: 4,
+  },
+  bar: {
+    flex: 1,
+    borderRadius: 2,
+  },
+  xLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginTop: 6,
+  },
+  xLabel: {
+    fontSize: 10,
+    color: colors.gray[400],
+  },
+});
+
+export default function ProductDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
+
+  const { data: product, isLoading: productLoading } = useProduct(id);
+  const { data: trend } = useProductTrend(id);
+  const { data: listings } = useVendorListings(id);
+
+  const toggleWatchlist = useAppStore(s => s.toggleWatchlist);
+  const isWatchlisted = useAppStore(s => s.isWatchlisted);
+  const addAlert = useAppStore(s => s.addAlert);
+
+  const [alertSet, setAlertSet] = useState(false);
+  const watchlisted = isWatchlisted(id);
+
+  const handleWatchlist = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggleWatchlist(id);
+    showMessage({
+      message: watchlisted ? 'Removed from watchlist' : 'Added to watchlist',
+      type: watchlisted ? 'info' : 'success',
+    });
+  };
+
+  const handleSetAlert = () => {
+    if (!product) return;
+    const targetPrice = Math.round(product.bestPrice * 0.95); // 5% below current best
+    addAlert({
+      id: `alert-${Date.now()}`,
+      productId: id,
+      productName: product.name,
+      targetPrice,
+      currentPrice: product.bestPrice,
+      direction: 'below',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    });
+    setAlertSet(true);
+    showMessage({ message: `Alert set for below ${formatKES(targetPrice)}`, type: 'success' });
+  };
+
+  const handleContactVendor = (phone?: string) => {
+    if (!phone) return;
+    Linking.openURL(`tel:${phone.replace(/\s/g, '')}`);
+  };
+
+  const handleWhatsApp = (phone?: string, productName?: string) => {
+    if (!phone) return;
+    const msg = `Hello, I'm inquiring about ${productName} — can you confirm current pricing and availability?`;
+    Linking.openURL(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
+  };
+
+  if (productLoading || !product) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeftIcon size={22} color={colors.white} />
+        </Pressable>
+        <LoadingSpinner />
+      </View>
+    );
+  }
+
+  const isUp = product.priceChangePct >= 0;
+
+  return (
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeftIcon size={20} color={colors.white} />
+        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={handleWatchlist} style={styles.iconBtn}>
+            <HeartIcon
+              size={20}
+              color={watchlisted ? colors.red[400] : colors.white}
+              weight={watchlisted ? 'fill' : 'duotone'}
+            />
+          </Pressable>
+          <Pressable onPress={() => {}} style={styles.iconBtn}>
+            <ShareNetworkIcon size={20} color={colors.white} />
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Product hero */}
+      <View style={styles.productHero}>
+        {product.imageUrl && (
+          <View style={styles.heroImageWrap}>
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          </View>
+        )}
+        <Text style={styles.heroCategory}>{product.category} · {product.subcategory}</Text>
+        <Text style={styles.heroName}>{product.name}</Text>
+        <View style={styles.heroPriceRow}>
+          <Text style={styles.heroBestPrice}>{formatKES(product.bestPrice)}</Text>
+          <Text style={styles.heroPriceLabel}>best price</Text>
+          <View style={[styles.changeChip, isUp ? styles.changeUp : styles.changeDn]}>
+            <Text style={[styles.changeText, isUp ? styles.changeTextUp : styles.changeTextDn]}>
+              {isUp ? '▲' : '▼'} {Math.abs(product.priceChangePct).toFixed(1)}%
+            </Text>
+          </View>
+        </View>
+        <View style={styles.heroMeta}>
+          <View style={styles.metaIconRow}>
+            <StorefrontIcon size={12} color="rgba(255,255,255,0.45)" />
+            <Text style={styles.metaItem}>{product.vendorCount} vendors</Text>
+          </View>
+          <Text style={styles.metaDot}>·</Text>
+          <Text style={styles.metaItem}>Avg {formatKES(product.avgPrice)}</Text>
+          <Text style={styles.metaDot}>·</Text>
+          <Text style={styles.metaItem}>{product.unit}</Text>
+        </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Price trend */}
+        {trend && trend.dataPoints.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>30-day price trend</Text>
+            <View style={styles.card}>
+              <PriceChart dataPoints={trend.dataPoints} />
+            </View>
+          </View>
+        )}
+
+        {/* Tags */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Specifications</Text>
+          <View style={styles.tagsWrap}>
+            {product.tags.map(tag => <TagChip key={tag} label={tag} />)}
+          </View>
+        </View>
+
+        {/* Description */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About this product</Text>
+          <View style={styles.card}>
+            <Text style={styles.description}>{product.description}</Text>
+          </View>
+        </View>
+
+        {/* Vendor comparison */}
+        {listings && listings.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Compare vendors</Text>
+            {listings.map((listing, i) => {
+              const pct = pricePercentage(listing.price, product.bestPrice, product.worstPrice);
+              const isBest = listing.price === product.bestPrice;
+              return (
+                <View key={listing.vendorId} style={[styles.vendorCard, i > 0 && styles.vendorCardGap]}>
+                  <View style={styles.vendorCardTop}>
+                    <View style={styles.vendorCardLeft}>
+                      <View style={[styles.vendorDot, { backgroundColor: isBest ? colors.green[400] : colors.gray[300] }]} />
+                      <View>
+                        <Text style={styles.vendorName}>{listing.vendorName}</Text>
+                        <Text style={styles.vendorLocation}>{listing.vendorLocation}</Text>
+                        {listing.notes && (
+                          <Text style={styles.vendorNotes}>{listing.notes}</Text>
+                        )}
+                      </View>
+                    </View>
+                    <View style={styles.vendorCardRight}>
+                      <Text style={styles.vendorPrice}>{formatKES(listing.price)}</Text>
+                      {isBest && (
+                        <View style={styles.bestBadge}>
+                          <Text style={styles.bestBadgeText}>Best price</Text>
+                        </View>
+                      )}
+                      {!listing.inStock && (
+                        <Text style={styles.outOfStock}>Out of stock</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Price bar */}
+                  <View style={styles.barWrap}>
+                    <View style={styles.barBg}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          {
+                            width: `${pct}%`,
+                            backgroundColor: isBest ? colors.green[400] : colors.amber[400],
+                          },
+                        ]}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Contact buttons */}
+                  <View style={styles.contactRow}>
+                    <VendorBadgeChip badge={listing.vendorBadge} />
+                    {listing.contactPhone && (
+                      <Pressable
+                        onPress={() => handleWhatsApp(listing.contactPhone, product.name)}
+                        style={styles.contactBtn}
+                      >
+                        <WhatsappLogoIcon size={14} color={colors.green[600]} weight="fill" />
+                        <Text style={styles.contactBtnText}>WhatsApp</Text>
+                      </Pressable>
+                    )}
+                    {listing.contactPhone && (
+                      <Pressable
+                        onPress={() => handleContactVendor(listing.contactPhone)}
+                        style={styles.contactBtnSecondary}
+                      >
+                        <PhoneIcon size={14} color={colors.navy[700]} />
+                        <Text style={styles.contactBtnSecondaryText}>Call</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Alert CTA */}
+        <View style={styles.ctaRow}>
+          <Pressable
+            onPress={handleSetAlert}
+            style={[styles.ctaBtn, alertSet && styles.ctaBtnDone]}
+          >
+            {alertSet ? (
+              <CheckCircleIcon size={18} color={colors.green[600]} weight="fill" />
+            ) : (
+              <BellIcon size={18} color={colors.amber[600]} />
+            )}
+            <Text style={[styles.ctaBtnText, alertSet && { color: colors.green[600] }]}>
+              {alertSet ? 'Alert set' : 'Set price alert'}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={{ height: insets.bottom + 24 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.gray[50],
+  },
+  header: {
+    backgroundColor: colors.navy[800],
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productHero: {
+    backgroundColor: colors.navy[800],
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 24,
+  },
+  heroImageWrap: {
+    height: 160,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.navy[700],
+    marginBottom: 16,
+  },
+  heroCategory: {
+    fontSize: typography.sizes.xs,
+    color: 'rgba(255,255,255,0.45)',
+    marginBottom: 4,
+  },
+  heroName: {
+    fontSize: typography.sizes['2xl'],
+    fontFamily: typography.displayFont,
+    color: colors.white,
+    lineHeight: 28,
+    marginBottom: 12,
+  },
+  heroPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 8,
+  },
+  heroBestPrice: {
+    fontSize: typography.sizes['4xl'],
+    fontFamily: typography.displayFont,
+    color: colors.amber[400],
+  },
+  heroPriceLabel: {
+    fontSize: typography.sizes.sm,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  changeChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.full,
+    marginLeft: 4,
+  },
+  changeUp: { backgroundColor: 'rgba(74,222,128,0.15)' },
+  changeDn: { backgroundColor: 'rgba(248,113,113,0.15)' },
+  changeText: { fontSize: 12, fontWeight: '500' },
+  changeTextUp: { color: '#4ADE80' },
+  changeTextDn: { color: '#F87171' },
+  heroMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaItem: {
+    fontSize: typography.sizes.xs,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  metaDot: {
+    fontSize: typography.sizes.xs,
+    color: 'rgba(255,255,255,0.2)',
+  },
+  scrollContent: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: '500',
+    color: colors.gray[500],
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    borderWidth: 0.5,
+    borderColor: colors.gray[200],
+    padding: 16,
+  },
+  description: {
+    fontSize: typography.sizes.base,
+    color: colors.gray[600],
+    lineHeight: 22,
+  },
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  vendorCard: {
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    borderWidth: 0.5,
+    borderColor: colors.gray[200],
+    overflow: 'hidden',
+    padding: 14,
+  },
+  vendorCardGap: {
+    marginTop: 10,
+  },
+  vendorCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  vendorCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    flex: 1,
+  },
+  vendorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 3,
+    flexShrink: 0,
+  },
+  vendorName: {
+    fontSize: typography.sizes.base,
+    fontWeight: '500',
+    color: colors.navy[800],
+  },
+  vendorLocation: {
+    fontSize: typography.sizes.xs,
+    color: colors.gray[500],
+    marginTop: 2,
+  },
+  vendorNotes: {
+    fontSize: typography.sizes.xs,
+    color: colors.amber[600],
+    marginTop: 3,
+  },
+  vendorCardRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  vendorPrice: {
+    fontSize: typography.sizes.lg,
+    fontFamily: typography.displayFontMedium,
+    color: colors.navy[800],
+  },
+  bestBadge: {
+    backgroundColor: colors.amber[50],
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radii.full,
+  },
+  bestBadgeText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: colors.amber[700],
+  },
+  outOfStock: {
+    fontSize: 10,
+    color: colors.red[400],
+  },
+  barWrap: {
+    marginBottom: 10,
+  },
+  barBg: {
+    height: 4,
+    backgroundColor: colors.gray[100],
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  contactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    backgroundColor: colors.green[50],
+    borderWidth: 0.5,
+    borderColor: colors.green[400] + '44',
+  },
+  contactBtnText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.green[600],
+  },
+  contactBtnSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    backgroundColor: colors.navy[50],
+    borderWidth: 0.5,
+    borderColor: colors.navy[200],
+  },
+  contactBtnSecondaryText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.navy[700],
+  },
+  ctaRow: {
+    paddingBottom: 8,
+  },
+  ctaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: radii.lg,
+    backgroundColor: colors.amber[50],
+    borderWidth: 0.5,
+    borderColor: colors.amber[200],
+  },
+  ctaBtnDone: {
+    backgroundColor: colors.green[50],
+    borderColor: colors.green[400] + '44',
+  },
+  ctaBtnText: {
+    fontSize: typography.sizes.base,
+    fontWeight: '500',
+    color: colors.amber[700],
+  },
+});

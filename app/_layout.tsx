@@ -1,0 +1,89 @@
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
+import { Stack } from 'expo-router';
+import { PaperProvider } from 'react-native-paper';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import FlashMessage from 'react-native-flash-message';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
+import { IconContext } from 'phosphor-react-native';
+import {
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+} from '@expo-google-fonts/inter';
+import { lightTheme } from '@/theme';
+import { colors } from '@/theme/tokens';
+
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
+    },
+  },
+});
+
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <IconContext.Provider value={{ weight: 'duotone' }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <PaperProvider theme={lightTheme}>
+            <StatusBar style="light" backgroundColor={colors.navy[800]} />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen
+                name="(auth)"
+                options={{ animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen
+                name="product/[id]"
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                }}
+              />
+              <Stack.Screen
+                name="vendor/[id]"
+                options={{
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                }}
+              />
+            </Stack>
+            <FlashMessage position="top" />
+          </PaperProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+      </IconContext.Provider>
+    </GestureHandlerRootView>
+  );
+}

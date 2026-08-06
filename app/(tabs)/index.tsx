@@ -11,12 +11,13 @@ import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
 import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BellIcon, MagnifyingGlassIcon, TrendDownIcon, TagIcon } from 'phosphor-react-native';
+import { BellIcon, MagnifyingGlassIcon, TagIcon } from 'phosphor-react-native';
 import { useMarketSummary, useMarketTicker, useProducts } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, shadows, spacing, typography } from '@/theme/tokens';
 import { PriceTicker } from '@/components/home/PriceTicker';
 import { ProductCard } from '@/components/home/ProductCard';
+import { DealOfDayTile } from '@/components/home/DealOfDayTile';
 import { SectionLabel, LoadingSpinner, PriceChangePill, ProductCardSkeleton } from '@/components/common';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/useResponsive';
@@ -57,6 +58,10 @@ export default function HomeScreen() {
 
   const trending = products?.slice(0, 5) ?? [];
   const recent = products ?? [];
+  const dealProduct = useMemo(() => {
+    if (!products || products.length === 0) return null;
+    return [...products].sort((a, b) => a.priceChangePct - b.priceChangePct)[0];
+  }, [products]);
 
   return (
     <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
@@ -120,31 +125,46 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <ResponsiveContainer>
-        {/* Market stats */}
-        {summaryLoading ? (
-          <LoadingSpinner />
-        ) : summary ? (
+        {/* Deal of the day + market stats bento */}
+        {productsLoading || summaryLoading ? (
           <View style={styles.section}>
-            <SectionLabel>Market today</SectionLabel>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.statRow}
-            >
-              <StatCard dyn={dyn} label="Products tracked" value={summary.totalProducts.toLocaleString()} sub="+12 added today" subPositive />
-              <StatCard dyn={dyn} label="Price movement" value={`+${summary.avgPriceMovement.toFixed(1)}%`} sub="vs. last week" />
-              <StatCard dyn={dyn} label="Active vendors" value={summary.activeVendors.toString()} sub="Nairobi" subPositive />
-            </ScrollView>
+            <View style={styles.dealSkeletonTile} />
+          </View>
+        ) : dealProduct && summary ? (
+          <View style={styles.section}>
+            {isDesktop ? (
+              <View style={styles.bentoRow}>
+                <DealOfDayTile
+                  product={dealProduct}
+                  onPress={() => router.push(`/product/${dealProduct.id}`)}
+                  style={styles.bentoDeal}
+                />
+                <View style={styles.bentoStatCol}>
+                  <StatCard dyn={dyn} full label="Products tracked" value={summary.totalProducts.toLocaleString()} sub="+12 added today" subPositive />
+                  <StatCard dyn={dyn} full label="Price movement" value={`+${summary.avgPriceMovement.toFixed(1)}%`} sub="vs. last week" />
+                  <StatCard dyn={dyn} full label="Active vendors" value={summary.activeVendors.toString()} sub="Nairobi" subPositive />
+                </View>
+              </View>
+            ) : (
+              <>
+                <DealOfDayTile
+                  product={dealProduct}
+                  onPress={() => router.push(`/product/${dealProduct.id}`)}
+                  style={styles.dealMobile}
+                />
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.statRow}
+                >
+                  <StatCard dyn={dyn} label="Products tracked" value={summary.totalProducts.toLocaleString()} sub="+12 added today" subPositive />
+                  <StatCard dyn={dyn} label="Price movement" value={`+${summary.avgPriceMovement.toFixed(1)}%`} sub="vs. last week" />
+                  <StatCard dyn={dyn} label="Active vendors" value={summary.activeVendors.toString()} sub="Nairobi" subPositive />
+                </ScrollView>
+              </>
+            )}
           </View>
         ) : null}
-
-        {/* Alert banner */}
-        <View style={styles.alertBanner}>
-          <TrendDownIcon size={16} color={colors.amber[700]} />
-          <Text style={styles.alertText}>
-            HP LaserJet toner (CF230A) dropped 8% — now {formatKES(3200)} at Almiria Solutions.
-          </Text>
-        </View>
 
         {/* Trending */}
         {productsLoading ? (
@@ -231,17 +251,19 @@ function StatCard({
   sub,
   subPositive,
   dyn,
+  full,
 }: {
   label: string;
   value: string;
   sub: string;
   subPositive?: boolean;
   dyn: ReturnType<typeof StyleSheet.create>;
+  full?: boolean;
 }) {
   return (
-    <View style={[styles.statCard, dyn.statCard]}>
+    <View style={[styles.statCard, full && styles.statCardFull, dyn.statCard]}>
       <Text style={[styles.statLabel, dyn.statLabel]}>{label}</Text>
-      <Text style={[styles.statValue, dyn.statValue]}>{value}</Text>
+      <Text style={[styles.statValue, full && styles.statValueFull, dyn.statValue]}>{value}</Text>
       <Text style={[styles.statSub, subPositive ? styles.statSubGreen : dyn.statSubMuted]}>
         {sub}
       </Text>
@@ -350,6 +372,11 @@ const styles = StyleSheet.create({
     borderColor: colors.gray[200],
     padding: 14,
   },
+  statCardFull: {
+    width: '100%',
+    flex: 1,
+    justifyContent: 'center',
+  },
   statLabel: {
     fontSize: 11,
     color: colors.gray[500],
@@ -360,29 +387,36 @@ const styles = StyleSheet.create({
     fontFamily: typography.displayFontMedium,
     color: colors.navy[800],
   },
+  statValueFull: {
+    fontSize: 20,
+  },
   statSub: {
     fontSize: 11,
     marginTop: 4,
   },
   statSubGreen: { color: colors.green[600] },
   statSubMuted: { color: colors.gray[500] },
-  alertBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  dealSkeletonTile: {
+    height: 200,
     marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 12,
-    borderRadius: radii.lg,
-    backgroundColor: colors.amber[50],
-    borderWidth: 0.5,
-    borderColor: 'rgba(232,160,32,0.3)',
+    borderRadius: radii.xl,
+    backgroundColor: colors.gray[100],
   },
-  alertText: {
+  dealMobile: {
+    marginHorizontal: 20,
+    marginBottom: 14,
+  },
+  bentoRow: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  bentoDeal: {
+    flex: 2,
+  },
+  bentoStatCol: {
     flex: 1,
-    fontSize: typography.sizes.xs,
-    color: colors.amber[700],
-    lineHeight: 18,
+    gap: 10,
   },
   hScroll: {
     paddingHorizontal: 20,

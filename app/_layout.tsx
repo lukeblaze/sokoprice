@@ -23,6 +23,7 @@ import {
 import { lightTheme, darkTheme } from '@/theme';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/store';
+import { CommandPalette } from '@/components/common/CommandPalette';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -87,6 +88,7 @@ export default function RootLayout() {
               />
             </Stack>
             <FlashMessage position="top" />
+            <CommandPalette />
             </BottomSheetModalProvider>
           </PaperProvider>
         </QueryClientProvider>

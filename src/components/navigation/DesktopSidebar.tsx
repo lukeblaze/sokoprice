@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import { Text } from '@/components/common/Text';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { BellIcon } from 'phosphor-react-native';
+import { BellIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { TAB_ROUTE_ICONS } from './tabConfig';
@@ -32,6 +32,21 @@ function DesktopSidebarInner({ state, descriptors, navigation }: BottomTabBarPro
         </View>
         <Text style={styles.brandName}>SokoPrice</Text>
       </View>
+
+      <Pressable
+        onPress={() => {
+          if (Platform.OS === 'web') {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
+          }
+        }}
+        style={({ hovered }) => [styles.searchHint, hovered && styles.searchHintHover]}
+      >
+        <MagnifyingGlassIcon size={14} color="rgba(255,255,255,0.4)" />
+        <Text style={styles.searchHintText}>Search</Text>
+        <View style={styles.kbdChip}>
+          <Text style={styles.kbdChipText}>⌘K</Text>
+        </View>
+      </Pressable>
 
       <View style={styles.nav}>
         {state.routes.map((route, index) => {
@@ -121,6 +136,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: typography.displayFont,
     color: colors.navy[800],
+  },
+  searchHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: radii.md,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    marginBottom: 20,
+  },
+  searchHintHover: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  searchHintText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  kbdChip: {
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: radii.sm,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  kbdChipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.45)',
   },
   brandName: {
     fontSize: typography.sizes.lg,

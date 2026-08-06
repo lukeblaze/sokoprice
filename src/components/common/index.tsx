@@ -3,6 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Pressable, Image, type StyleProp, 
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from './Text';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
   LaptopIcon,
   WifiHighIcon,
@@ -134,10 +135,11 @@ export function EmptyState({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const t = useThemeColors();
   return (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      {subtitle && <Text style={styles.emptySubtitle}>{subtitle}</Text>}
+      <Text style={[styles.emptyTitle, { color: t.textPrimary }]}>{title}</Text>
+      {subtitle && <Text style={[styles.emptySubtitle, { color: t.textSecondary }]}>{subtitle}</Text>}
       {actionLabel && onAction && (
         <Pressable onPress={onAction} style={styles.emptyAction}>
           <Text style={styles.emptyActionText}>{actionLabel}</Text>
@@ -162,6 +164,7 @@ export function Skeleton({ width, height, radius = radii.md, style }: {
   style?: StyleProp<ViewStyle>;
 }) {
   const shimmer = useSharedValue(0);
+  const t = useThemeColors();
 
   useEffect(() => {
     shimmer.value = withRepeat(
@@ -176,10 +179,12 @@ export function Skeleton({ width, height, radius = radii.md, style }: {
   }));
 
   return (
-    <View style={[{ width, height, borderRadius: radius, backgroundColor: colors.gray[100], overflow: 'hidden' }, style]}>
+    <View style={[{ width, height, borderRadius: radius, backgroundColor: t.surfaceAlt, overflow: 'hidden' }, style]}>
       <Animated.View style={[{ position: 'absolute', top: 0, bottom: 0, width: width * 0.6 }, animStyle]}>
         <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.7)', 'transparent']}
+          colors={t.isDark
+            ? ['transparent', 'rgba(255,255,255,0.12)', 'transparent']
+            : ['transparent', 'rgba(255,255,255,0.7)', 'transparent']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFill}
@@ -197,6 +202,7 @@ export function SkeletonBlock({ width, height, style }: { width: number | string
 }
 
 export function ProductCardSkeleton({ variant = 'vertical' }: { variant?: 'vertical' | 'horizontal' }) {
+  const t = useThemeColors();
   if (variant === 'horizontal') {
     return (
       <View style={skeletonStyles.hCard}>
@@ -210,7 +216,7 @@ export function ProductCardSkeleton({ variant = 'vertical' }: { variant?: 'verti
     );
   }
   return (
-    <View style={skeletonStyles.vCard}>
+    <View style={[skeletonStyles.vCard, { backgroundColor: t.surface, borderColor: t.border }]}>
       <Skeleton width={42} height={42} radius={radii.md} style={{ marginBottom: 10 }} />
       <Skeleton width={130} height={14} style={{ marginBottom: 6 }} />
       <Skeleton width={70} height={18} style={{ marginBottom: 8 }} />
@@ -220,8 +226,9 @@ export function ProductCardSkeleton({ variant = 'vertical' }: { variant?: 'verti
 }
 
 export function VendorCardSkeleton({ style }: { style?: StyleProp<ViewStyle> }) {
+  const t = useThemeColors();
   return (
-    <View style={[skeletonStyles.vendorCard, style]}>
+    <View style={[skeletonStyles.vendorCard, { backgroundColor: t.surface, borderColor: t.border }, style]}>
       <Skeleton width={48} height={48} radius={radii.md} />
       <View style={{ flex: 1, gap: 6 }}>
         <Skeleton width={140} height={14} />
@@ -241,20 +248,16 @@ const skeletonStyles = StyleSheet.create({
   },
   vCard: {
     width: 160,
-    backgroundColor: colors.white,
     borderRadius: radii.lg,
     borderWidth: 0.5,
-    borderColor: colors.gray[200],
     padding: 14,
   },
   vendorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
-    backgroundColor: colors.white,
     borderRadius: radii.lg,
     borderWidth: 0.5,
-    borderColor: colors.gray[200],
     marginHorizontal: 20,
     marginBottom: 10,
     padding: 14,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -23,6 +23,7 @@ import {
 import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { formatKES, formatRelativeTime } from '@/utils/format';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import type { Notification } from '@/types';
 
 const NOTIF_ICON: Record<string, { icon: React.ComponentType<IconProps>; color: string; bg: string }> = {
@@ -33,10 +34,10 @@ const NOTIF_ICON: Record<string, { icon: React.ComponentType<IconProps>; color: 
   system:          { icon: InfoIcon, color: colors.gray[500], bg: colors.gray[100] },
 };
 
-function NotifRow({ notif, onPress, onMarkRead }: {
+function NotifRow({ notif, onPress, dyn }: {
   notif: Notification;
   onPress: () => void;
-  onMarkRead: () => void;
+  dyn: ReturnType<typeof StyleSheet.create>;
 }) {
   const config = NOTIF_ICON[notif.type] ?? NOTIF_ICON.system;
   const NotifIcon = config.icon;
@@ -44,16 +45,16 @@ function NotifRow({ notif, onPress, onMarkRead }: {
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.notifRow, !notif.isRead && styles.notifRowUnread]}
+      style={[styles.notifRow, dyn.notifRow, !notif.isRead && styles.notifRowUnread]}
     >
       {!notif.isRead && <View style={styles.unreadDot} />}
       <View style={[styles.notifIcon, { backgroundColor: config.bg }]}>
         <NotifIcon size={18} color={config.color} />
       </View>
       <View style={styles.notifContent}>
-        <Text style={styles.notifTitle}>{notif.title}</Text>
-        <Text style={styles.notifBody} numberOfLines={2}>{notif.body}</Text>
-        <Text style={styles.notifTime}>{formatRelativeTime(notif.createdAt)}</Text>
+        <Text style={[styles.notifTitle, dyn.notifTitle]}>{notif.title}</Text>
+        <Text style={[styles.notifBody, dyn.notifBody]} numberOfLines={2}>{notif.body}</Text>
+        <Text style={[styles.notifTime, dyn.notifTime]}>{formatRelativeTime(notif.createdAt)}</Text>
       </View>
     </Pressable>
   );
@@ -68,15 +69,33 @@ export default function AlertsScreen() {
   const markAllRead = useAppStore(s => s.markAllRead);
   const toggleAlert = useAppStore(s => s.toggleAlert);
   const removeAlert = useAppStore(s => s.removeAlert);
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    screen: { backgroundColor: t.bg },
+    header: { backgroundColor: t.surface, borderBottomColor: t.border },
+    title: { color: t.textPrimary },
+    sectionTitle: { color: t.textPrimary },
+    alertsCard: { backgroundColor: t.surface, borderColor: t.border },
+    alertRowBorder: { borderBottomColor: t.divider },
+    alertName: { color: t.textPrimary },
+    alertTarget: { color: t.textSecondary },
+    notifsCard: { backgroundColor: t.surface, borderColor: t.border },
+    notifRow: { borderBottomColor: t.divider },
+    notifTitle: { color: t.textPrimary },
+    notifBody: { color: t.textSecondary },
+    notifTime: { color: t.textMuted },
+    emptyText: { color: t.textPrimary },
+    emptySubText: { color: t.textSecondary },
+  }), [t]);
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
       <Head>
         <title>Price Alerts & Notifications — SokoPrice</title>
         <meta name="description" content="Manage your price drop alerts and notifications for tracked products." />
       </Head>
-      <View style={styles.header}>
-        <Text style={styles.title}>Alerts</Text>
+      <View style={[styles.header, dyn.header]}>
+        <Text style={[styles.title, dyn.title]}>Alerts</Text>
         {unreadCount > 0 && (
           <Pressable onPress={markAllRead}>
             <Text style={styles.markAll}>Mark all read</Text>
@@ -93,25 +112,25 @@ export default function AlertsScreen() {
           if (item === 'alerts') {
             return (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Price alerts ({alerts.length})</Text>
+                <Text style={[styles.sectionTitle, dyn.sectionTitle]}>Price alerts ({alerts.length})</Text>
                 {alerts.length === 0 ? (
                   <View style={styles.emptyAlerts}>
-                    <BellSlashIcon size={32} color={colors.gray[300]} />
-                    <Text style={styles.emptyText}>No active price alerts.</Text>
-                    <Text style={styles.emptySubText}>Open any product to set an alert.</Text>
+                    <BellSlashIcon size={32} color={t.textMuted} />
+                    <Text style={[styles.emptyText, dyn.emptyText]}>No active price alerts.</Text>
+                    <Text style={[styles.emptySubText, dyn.emptySubText]}>Open any product to set an alert.</Text>
                   </View>
                 ) : (
-                  <View style={styles.alertsCard}>
+                  <View style={[styles.alertsCard, dyn.alertsCard]}>
                     {alerts.map((alert, i) => (
                       <View
                         key={alert.id}
-                        style={[styles.alertRow, i < alerts.length - 1 && styles.alertRowBorder]}
+                        style={[styles.alertRow, i < alerts.length - 1 && [styles.alertRowBorder, dyn.alertRowBorder]]}
                       >
                         <View style={styles.alertLeft}>
                           <View style={[styles.alertDot, alert.isActive ? styles.alertDotActive : styles.alertDotOff]} />
                           <View style={styles.alertInfo}>
-                            <Text style={styles.alertName} numberOfLines={1}>{alert.productName}</Text>
-                            <Text style={styles.alertTarget}>
+                            <Text style={[styles.alertName, dyn.alertName]} numberOfLines={1}>{alert.productName}</Text>
+                            <Text style={[styles.alertTarget, dyn.alertTarget]}>
                               Alert when {alert.direction === 'below' ? 'below' : 'above'} {formatKES(alert.targetPrice)}
                             </Text>
                             <Text style={styles.alertCurrent}>
@@ -140,25 +159,25 @@ export default function AlertsScreen() {
 
           return (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
+              <Text style={[styles.sectionTitle, dyn.sectionTitle]}>
                 Notifications {unreadCount > 0 ? `(${unreadCount} new)` : ''}
               </Text>
               {notifications.length === 0 ? (
                 <View style={styles.emptyAlerts}>
-                  <Text style={styles.emptyText}>No notifications yet.</Text>
+                  <Text style={[styles.emptyText, dyn.emptyText]}>No notifications yet.</Text>
                 </View>
               ) : (
-                <View style={styles.notifsCard}>
+                <View style={[styles.notifsCard, dyn.notifsCard]}>
                   {notifications.map(notif => (
                     <NotifRow
                       key={notif.id}
                       notif={notif}
+                      dyn={dyn}
                       onPress={() => {
                         markRead(notif.id);
                         if (notif.productId) router.push(`/product/${notif.productId}`);
                         if (notif.vendorId) router.push(`/vendor/${notif.vendorId}`);
                       }}
-                      onMarkRead={() => markRead(notif.id)}
                     />
                   ))}
                 </View>

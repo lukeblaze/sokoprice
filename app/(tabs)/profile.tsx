@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -31,6 +31,7 @@ import Head from 'expo-router/head';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 const NAIROBI_AREAS = ['Nairobi CBD', 'Westlands', 'Kilimani', 'Upper Hill', 'Ngara', 'Kileleshwa'];
 const CURRENCIES = [
@@ -55,24 +56,27 @@ interface SettingsRowProps {
   comingSoon?: boolean;
 }
 
-function SettingsRow({ icon: Icon, label, value, onPress, danger, iconBg, iconColor, comingSoon }: SettingsRowProps) {
+function SettingsRow({ icon: Icon, label, value, onPress, danger, iconBg, iconColor, comingSoon, dyn, t }: SettingsRowProps & {
+  dyn: ReturnType<typeof StyleSheet.create>;
+  t: ReturnType<typeof useThemeColors>;
+}) {
   return (
     <Pressable
       onPress={onPress}
       style={({ hovered, focused }) => [
         styles.settingsRow,
         comingSoon && styles.settingsRowDisabled,
-        (hovered || focused) && !comingSoon && styles.settingsRowHovered,
+        (hovered || focused) && !comingSoon && dyn.settingsRowHovered,
       ]}
     >
-      <View style={[styles.settingsIcon, { backgroundColor: iconBg ?? colors.gray[100] }]}>
-        <Icon size={17} color={iconColor ?? colors.gray[500]} />
+      <View style={[styles.settingsIcon, { backgroundColor: iconBg ?? t.surfaceAlt }]}>
+        <Icon size={17} color={iconColor ?? t.textSecondary} />
       </View>
-      <Text style={[styles.settingsLabel, danger && { color: colors.red[500] }]}>{label}</Text>
+      <Text style={[styles.settingsLabel, dyn.settingsLabel, danger && { color: colors.red[500] }]}>{label}</Text>
       <View style={styles.settingsRight}>
-        {comingSoon && <Text style={styles.comingSoonTag}>Soon</Text>}
-        {value && <Text style={styles.settingsValue}>{value}</Text>}
-        <CaretRightIcon size={14} color={colors.gray[300]} />
+        {comingSoon && <Text style={[styles.comingSoonTag, dyn.comingSoonTag]}>Soon</Text>}
+        {value && <Text style={[styles.settingsValue, dyn.settingsValue]}>{value}</Text>}
+        <CaretRightIcon size={14} color={t.textMuted} />
       </View>
     </Pressable>
   );
@@ -89,6 +93,17 @@ export default function ProfileScreen() {
   const setUserLocation = useAppStore(s => s.setUserLocation);
   const setUserCurrency = useAppStore(s => s.setUserCurrency);
   const signOut = useAppStore(s => s.signOut);
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    screen: { backgroundColor: t.bg },
+    group: { backgroundColor: t.surface, borderColor: t.border },
+    settingsRowHovered: { backgroundColor: t.surfaceAlt },
+    settingsLabel: { color: t.textPrimary },
+    settingsValue: { color: t.textMuted },
+    comingSoonTag: { color: t.textSecondary, backgroundColor: t.surfaceAlt },
+    divider: { backgroundColor: t.divider },
+    version: { color: t.textMuted },
+  }), [t]);
 
   const locationSheet = useRef<PickerSheetHandle>(null);
   const currencySheet = useRef<PickerSheetHandle>(null);
@@ -144,7 +159,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
       <Head>
         <title>Your Profile — SokoPrice</title>
         <meta name="description" content="Manage your account, preferences, and business details." />
@@ -178,8 +193,10 @@ export default function ProfileScreen() {
         </View>
 
         {/* Account group */}
-        <View style={styles.group}>
+        <View style={[styles.group, dyn.group]}>
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={BellIcon}
             label="Price alerts"
             value={`${alerts.length} active`}
@@ -187,8 +204,10 @@ export default function ProfileScreen() {
             iconColor={colors.amber[600]}
             onPress={() => router.push('/(tabs)/alerts')}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, dyn.divider]} />
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={HeartIcon}
             label="Watchlist"
             value={`${watchlistIds.size} products`}
@@ -196,8 +215,10 @@ export default function ProfileScreen() {
             iconColor={colors.red[500]}
             onPress={() => router.push({ pathname: '/(tabs)/search', params: { mode: 'watchlist' } })}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, dyn.divider]} />
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={StorefrontIcon}
             label="Saved vendors"
             value={`${savedVendorIds.size} vendors`}
@@ -208,22 +229,28 @@ export default function ProfileScreen() {
         </View>
 
         {/* Preferences group */}
-        <View style={styles.group}>
+        <View style={[styles.group, dyn.group]}>
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={MapPinIcon}
             label="Location"
             value={user?.location ?? 'Nairobi CBD'}
             onPress={() => locationSheet.current?.present()}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, dyn.divider]} />
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={CurrencyCircleDollarIcon}
             label="Currency"
             value={user?.currency ?? 'KES'}
             onPress={() => currencySheet.current?.present()}
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, dyn.divider]} />
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={MoonIcon}
             label="Appearance"
             value={colorScheme.charAt(0).toUpperCase() + colorScheme.slice(1)}
@@ -232,8 +259,10 @@ export default function ProfileScreen() {
         </View>
 
         {/* Business group */}
-        <View style={styles.group}>
+        <View style={[styles.group, dyn.group]}>
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={BuildingsIcon}
             label="Business details"
             iconBg={colors.navy[50]}
@@ -241,8 +270,10 @@ export default function ProfileScreen() {
             onPress={handleComingSoon}
             comingSoon
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, dyn.divider]} />
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={UsersThreeIcon}
             label="Team members"
             iconBg={colors.navy[50]}
@@ -250,8 +281,10 @@ export default function ProfileScreen() {
             onPress={handleComingSoon}
             comingSoon
           />
-          <View style={styles.divider} />
+          <View style={[styles.divider, dyn.divider]} />
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={FileTextIcon}
             label="Export price history"
             iconBg={colors.navy[50]}
@@ -261,8 +294,10 @@ export default function ProfileScreen() {
         </View>
 
         {/* Sign out */}
-        <View style={styles.group}>
+        <View style={[styles.group, dyn.group]}>
           <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={SignOutIcon}
             label="Sign out"
             danger
@@ -273,7 +308,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Version */}
-        <Text style={styles.version}>SokoPrice v1.0.0 · Blaze Solutions Ltd</Text>
+        <Text style={[styles.version, dyn.version]}>SokoPrice v1.0.0 · Blaze Solutions Ltd</Text>
       </ScrollView>
 
       <PickerSheet

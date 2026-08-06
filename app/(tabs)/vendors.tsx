@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -18,11 +18,17 @@ import { VendorCard } from '@/components/vendors/VendorCard';
 import { LoadingSpinner, EmptyState, VendorCardSkeleton } from '@/components/common';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/useResponsive';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 export default function VendorsScreen() {
   const insets = useSafeAreaInsets();
   const { isDesktop, isTablet } = useBreakpoint();
   const numColumns = isDesktop ? 3 : isTablet ? 2 : 1;
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    screen: { backgroundColor: t.bg },
+    count: { color: t.textSecondary },
+  }), [t]);
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isSavedMode = mode === 'saved';
   const [query, setQuery] = useState('');
@@ -36,7 +42,7 @@ export default function VendorsScreen() {
     : query.trim() ? searchResults : allVendors;
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
       <Head>
         <title>{isSavedMode ? 'Saved Vendors' : 'Vendors'} — SokoPrice</title>
         <meta name="description" content={isSavedMode ? 'Your saved and favorited vendors.' : 'Browse verified vendors in the Nairobi market.'} />
@@ -108,7 +114,7 @@ export default function VendorsScreen() {
             contentContainerStyle={styles.list}
             columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
             ListHeaderComponent={
-              <Text style={styles.count}>
+              <Text style={[styles.count, dyn.count]}>
                 {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} {isSavedMode ? 'saved' : 'in Nairobi'}
               </Text>
             }

@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useMemo, Suspense, lazy } from 'react';
 import {
   View,
   StyleSheet,
@@ -33,6 +33,7 @@ import { useSkiaWebReady } from '@/utils/skiaWeb';
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { usePressScale } from '@/hooks/usePressScale';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import Animated from 'react-native-reanimated';
 
 // Deferred until Skia's CanvasKit WASM is confirmed ready (web) — importing
@@ -83,6 +84,18 @@ export default function ProductDetailScreen() {
   const [alertSet, setAlertSet] = useState(false);
   const watchlisted = isWatchlisted(id);
   const ctaPress = usePressScale();
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    screen: { backgroundColor: t.bg },
+    card: { backgroundColor: t.surface, borderColor: t.border },
+    sectionTitle: { color: t.textSecondary },
+    vendorCard: { backgroundColor: t.surface, borderColor: t.border },
+    vendorName: { color: t.textPrimary },
+    vendorLocation: { color: t.textSecondary },
+    vendorPrice: { color: t.textPrimary },
+    barBg: { backgroundColor: t.surfaceAlt },
+    description: { color: t.textSecondary },
+  }), [t]);
 
   const handleWatchlist = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -123,7 +136,7 @@ export default function ProductDetailScreen() {
 
   if (productLoading || !product) {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeftIcon size={22} color={colors.white} />
         </Pressable>
@@ -174,8 +187,8 @@ export default function ProductDetailScreen() {
       {/* Price trend */}
         {trend && trend.dataPoints.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>30-day price trend</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionTitle, dyn.sectionTitle]}>30-day price trend</Text>
+            <View style={[styles.card, dyn.card]}>
               <PriceChart dataPoints={trend.dataPoints} />
             </View>
           </View>
@@ -183,7 +196,7 @@ export default function ProductDetailScreen() {
 
         {/* Tags */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Specifications</Text>
+          <Text style={[styles.sectionTitle, dyn.sectionTitle]}>Specifications</Text>
           <View style={styles.tagsWrap}>
             {product.tags.map(tag => <TagChip key={tag} label={tag} />)}
           </View>
@@ -191,34 +204,34 @@ export default function ProductDetailScreen() {
 
         {/* Description */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About this product</Text>
-          <View style={styles.card}>
-            <Text style={styles.description}>{product.description}</Text>
+          <Text style={[styles.sectionTitle, dyn.sectionTitle]}>About this product</Text>
+          <View style={[styles.card, dyn.card]}>
+            <Text style={[styles.description, dyn.description]}>{product.description}</Text>
           </View>
         </View>
 
         {/* Vendor comparison */}
         {listings && listings.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Compare vendors</Text>
+            <Text style={[styles.sectionTitle, dyn.sectionTitle]}>Compare vendors</Text>
             {listings.map((listing, i) => {
               const pct = pricePercentage(listing.price, product.bestPrice, product.worstPrice);
               const isBest = listing.price === product.bestPrice;
               return (
-                <View key={listing.vendorId} style={[styles.vendorCard, i > 0 && styles.vendorCardGap]}>
+                <View key={listing.vendorId} style={[styles.vendorCard, dyn.vendorCard, i > 0 && styles.vendorCardGap]}>
                   <View style={styles.vendorCardTop}>
                     <View style={styles.vendorCardLeft}>
                       <View style={[styles.vendorDot, { backgroundColor: isBest ? colors.green[400] : colors.gray[300] }]} />
                       <View>
-                        <Text style={styles.vendorName}>{listing.vendorName}</Text>
-                        <Text style={styles.vendorLocation}>{listing.vendorLocation}</Text>
+                        <Text style={[styles.vendorName, dyn.vendorName]}>{listing.vendorName}</Text>
+                        <Text style={[styles.vendorLocation, dyn.vendorLocation]}>{listing.vendorLocation}</Text>
                         {listing.notes && (
                           <Text style={styles.vendorNotes}>{listing.notes}</Text>
                         )}
                       </View>
                     </View>
                     <View style={styles.vendorCardRight}>
-                      <Text style={styles.vendorPrice}>{formatKES(listing.price)}</Text>
+                      <Text style={[styles.vendorPrice, dyn.vendorPrice]}>{formatKES(listing.price)}</Text>
                       {isBest && (
                         <View style={styles.bestBadge}>
                           <Text style={styles.bestBadgeText}>Best price</Text>
@@ -232,7 +245,7 @@ export default function ProductDetailScreen() {
 
                   {/* Price bar */}
                   <View style={styles.barWrap}>
-                    <View style={styles.barBg}>
+                    <View style={[styles.barBg, dyn.barBg]}>
                       <View
                         style={[
                           styles.barFill,
@@ -303,7 +316,7 @@ export default function ProductDetailScreen() {
   );
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
       <Head>
         <title>{product.name} — {formatKES(product.bestPrice)} — SokoPrice</title>
         <meta name="description" content={`Compare prices for ${product.name} across ${product.vendorCount} vendors in Nairobi. Best price: ${formatKES(product.bestPrice)}.`} />

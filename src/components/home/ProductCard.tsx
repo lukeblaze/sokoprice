@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Pressable, StyleSheet, Image, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '@/components/common/Text';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { colors, radii, shadows, typography } from '@/theme/tokens';
 import { PriceChangePill, CATEGORY_ICONS, CATEGORY_ICON_FALLBACK } from '@/components/common';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { formatKES } from '@/utils/format';
 import type { Product } from '@/types';
 
@@ -46,6 +47,17 @@ function ProductThumb({ product, wrapStyle, iconSize }: {
 export function ProductCard({ product, onPress, variant = 'vertical', style, index }: Props) {
   const scale = useSharedValue(1);
   const [hovered, setHovered] = useState(false);
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    cardVertical: { backgroundColor: t.surface, borderColor: t.border },
+    cardHorizontal: { backgroundColor: t.surface, borderColor: t.divider },
+    name: { color: t.textPrimary },
+    price: { color: t.textPrimary },
+    vendors: { color: t.textSecondary },
+    hName: { color: t.textPrimary },
+    hMeta: { color: t.textSecondary },
+    hPrice: { color: t.textPrimary },
+  }), [t]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -59,7 +71,7 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
           : undefined
       }
       style={[
-        variant === 'vertical' ? styles.cardVertical : styles.cardHorizontal,
+        variant === 'vertical' ? [styles.cardVertical, dyn.cardVertical] : [styles.cardHorizontal, dyn.cardHorizontal],
         hovered && styles.cardHovered,
         animStyle,
         style,
@@ -76,10 +88,10 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
         {variant === 'vertical' ? (
           <>
             <ProductThumb product={product} wrapStyle={styles.iconWrap} iconSize={22} />
-            <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
-            <Text style={styles.price}>{formatKES(product.bestPrice)}</Text>
+            <Text style={[styles.name, dyn.name]} numberOfLines={2}>{product.name}</Text>
+            <Text style={[styles.price, dyn.price]}>{formatKES(product.bestPrice)}</Text>
             <View style={styles.footer}>
-              <Text style={styles.vendors}>{product.vendorCount} vendors</Text>
+              <Text style={[styles.vendors, dyn.vendors]}>{product.vendorCount} vendors</Text>
               <PriceChangePill pct={product.priceChangePct} />
             </View>
           </>
@@ -87,11 +99,11 @@ export function ProductCard({ product, onPress, variant = 'vertical', style, ind
           <View style={styles.hRow}>
             <ProductThumb product={product} wrapStyle={styles.iconWrapSmall} iconSize={18} />
             <View style={styles.hInfo}>
-              <Text style={styles.hName} numberOfLines={1}>{product.name}</Text>
-              <Text style={styles.hMeta}>{product.category} · {product.vendorCount} vendors</Text>
+              <Text style={[styles.hName, dyn.hName]} numberOfLines={1}>{product.name}</Text>
+              <Text style={[styles.hMeta, dyn.hMeta]}>{product.category} · {product.vendorCount} vendors</Text>
             </View>
             <View style={styles.hRight}>
-              <Text style={styles.hPrice}>{formatKES(product.bestPrice)}</Text>
+              <Text style={[styles.hPrice, dyn.hPrice]}>{formatKES(product.bestPrice)}</Text>
               <PriceChangePill pct={product.priceChangePct} />
             </View>
           </View>

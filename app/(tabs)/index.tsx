@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -20,11 +20,26 @@ import { ProductCard } from '@/components/home/ProductCard';
 import { SectionLabel, LoadingSpinner, PriceChangePill, ProductCardSkeleton } from '@/components/common';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/useResponsive';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { formatKES, formatRelativeTime } from '@/utils/format';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { isDesktop } = useBreakpoint();
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    screen: { backgroundColor: t.bg },
+    statCard: { backgroundColor: t.surface, borderColor: t.border },
+    statLabel: { color: t.textSecondary },
+    statValue: { color: t.textPrimary },
+    statSubMuted: { color: t.textSecondary },
+    feedCard: { backgroundColor: t.surface, borderColor: t.border },
+    feedRow: { borderBottomColor: t.divider },
+    feedIconWrap: { backgroundColor: t.surfaceAlt },
+    feedName: { color: t.textPrimary },
+    feedMeta: { color: t.textSecondary },
+    feedPrice: { color: t.textPrimary },
+  }), [t]);
   const user = useAppStore(s => s.user);
   const unreadCount = useAppStore(s => s.unreadCount);
 
@@ -44,7 +59,7 @@ export default function HomeScreen() {
   const recent = products ?? [];
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
       <Head>
         <title>SokoPrice — Compare vendor prices in Nairobi, live</title>
         <meta name="description" content="Track and compare product prices across Nairobi vendors in real time. IT, office supplies, and more." />
@@ -116,9 +131,9 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.statRow}
             >
-              <StatCard label="Products tracked" value={summary.totalProducts.toLocaleString()} sub="+12 added today" subPositive />
-              <StatCard label="Price movement" value={`+${summary.avgPriceMovement.toFixed(1)}%`} sub="vs. last week" />
-              <StatCard label="Active vendors" value={summary.activeVendors.toString()} sub="Nairobi" subPositive />
+              <StatCard dyn={dyn} label="Products tracked" value={summary.totalProducts.toLocaleString()} sub="+12 added today" subPositive />
+              <StatCard dyn={dyn} label="Price movement" value={`+${summary.avgPriceMovement.toFixed(1)}%`} sub="vs. last week" />
+              <StatCard dyn={dyn} label="Active vendors" value={summary.activeVendors.toString()} sub="Nairobi" subPositive />
             </ScrollView>
           </View>
         ) : null}
@@ -179,22 +194,22 @@ export default function HomeScreen() {
               ))}
             </View>
           ) : (
-            <View style={styles.feedCard}>
+            <View style={[styles.feedCard, dyn.feedCard]}>
               {recent.slice(0, 6).map((p, i) => (
                 <Pressable
                   key={p.id}
                   onPress={() => router.push(`/product/${p.id}`)}
-                  style={[styles.feedRow, i === Math.min(5, recent.length - 1) && styles.feedRowLast]}
+                  style={[styles.feedRow, dyn.feedRow, i === Math.min(5, recent.length - 1) && styles.feedRowLast]}
                 >
-                  <View style={styles.feedIconWrap}>
-                    <TagIcon size={16} color={colors.gray[500]} />
+                  <View style={[styles.feedIconWrap, dyn.feedIconWrap]}>
+                    <TagIcon size={16} color={t.textSecondary} />
                   </View>
                   <View style={styles.feedInfo}>
-                    <Text style={styles.feedName} numberOfLines={1}>{p.name}</Text>
-                    <Text style={styles.feedMeta}>{p.category} · {p.vendorCount} vendors</Text>
+                    <Text style={[styles.feedName, dyn.feedName]} numberOfLines={1}>{p.name}</Text>
+                    <Text style={[styles.feedMeta, dyn.feedMeta]}>{p.category} · {p.vendorCount} vendors</Text>
                   </View>
                   <View style={styles.feedRight}>
-                    <Text style={styles.feedPrice}>{formatKES(p.bestPrice)}</Text>
+                    <Text style={[styles.feedPrice, dyn.feedPrice]}>{formatKES(p.bestPrice)}</Text>
                     <PriceChangePill pct={p.priceChangePct} />
                   </View>
                 </Pressable>
@@ -215,17 +230,19 @@ function StatCard({
   value,
   sub,
   subPositive,
+  dyn,
 }: {
   label: string;
   value: string;
   sub: string;
   subPositive?: boolean;
+  dyn: ReturnType<typeof StyleSheet.create>;
 }) {
   return (
-    <View style={styles.statCard}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={[styles.statSub, subPositive ? styles.statSubGreen : styles.statSubMuted]}>
+    <View style={[styles.statCard, dyn.statCard]}>
+      <Text style={[styles.statLabel, dyn.statLabel]}>{label}</Text>
+      <Text style={[styles.statValue, dyn.statValue]}>{value}</Text>
+      <Text style={[styles.statSub, subPositive ? styles.statSubGreen : dyn.statSubMuted]}>
         {sub}
       </Text>
     </View>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -34,6 +34,7 @@ import { VendorAvatar, VendorBadgeChip, LoadingSpinner } from '@/components/comm
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { usePressScale } from '@/hooks/usePressScale';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import Animated from 'react-native-reanimated';
 
 function ContactRow({
@@ -41,11 +42,15 @@ function ContactRow({
   label,
   value,
   onPress,
+  dyn,
+  t,
 }: {
   icon: React.ComponentType<IconProps>;
   label: string;
   value: string;
   onPress?: () => void;
+  dyn: ReturnType<typeof StyleSheet.create>;
+  t: ReturnType<typeof useThemeColors>;
 }) {
   const press = usePressScale(0.98);
   return (
@@ -54,16 +59,16 @@ function ContactRow({
         onPress={onPress}
         onPressIn={press.onPressIn}
         onPressOut={press.onPressOut}
-        style={({ hovered }) => [styles.contactRow, hovered && styles.contactRowHovered]}
+        style={({ hovered }) => [styles.contactRow, hovered && dyn.contactRowHovered]}
       >
-        <View style={styles.contactIcon}>
-          <Icon size={16} color={colors.navy[600]} />
+        <View style={[styles.contactIcon, dyn.contactIcon]}>
+          <Icon size={16} color={t.textSecondary} />
         </View>
         <View style={styles.contactInfo}>
-          <Text style={styles.contactLabel}>{label}</Text>
-          <Text style={styles.contactValue}>{value}</Text>
+          <Text style={[styles.contactLabel, dyn.contactLabel]}>{label}</Text>
+          <Text style={[styles.contactValue, dyn.contactValue]}>{value}</Text>
         </View>
-        {onPress && <CaretRightIcon size={14} color={colors.gray[300]} />}
+        {onPress && <CaretRightIcon size={14} color={t.textMuted} />}
       </Pressable>
     </Animated.View>
   );
@@ -78,6 +83,24 @@ export default function VendorDetailScreen() {
   const toggleSavedVendor = useAppStore(s => s.toggleSavedVendor);
   const isSaved = useAppStore(s => s.isSavedVendor(id));
   const ctaPress = usePressScale();
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    screen: { backgroundColor: t.bg },
+    statsRow: { backgroundColor: t.surface, borderColor: t.border },
+    statCellBorder: { borderColor: t.border },
+    statValue: { color: t.textPrimary },
+    statLabel: { color: t.textSecondary },
+    sectionTitle: { color: t.textSecondary },
+    card: { backgroundColor: t.surface, borderColor: t.border },
+    description: { color: t.textSecondary },
+    contactRowHovered: { backgroundColor: t.surfaceAlt },
+    contactIcon: { backgroundColor: t.surfaceAlt },
+    contactLabel: { color: t.textMuted },
+    contactValue: { color: t.textPrimary },
+    contactDivider: { backgroundColor: t.divider },
+    infoDivider: { backgroundColor: t.divider },
+    infoText: { color: t.textPrimary },
+  }), [t]);
 
   const handleSave = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -90,7 +113,7 @@ export default function VendorDetailScreen() {
 
   if (isLoading || !vendor) {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeftIcon size={22} color={colors.white} />
         </Pressable>
@@ -123,55 +146,59 @@ export default function VendorDetailScreen() {
   const mainSections = (
     <>
         {/* Stats */}
-        <View style={styles.statsRow}>
+        <View style={[styles.statsRow, dyn.statsRow]}>
           <View style={styles.statCell}>
-            <Text style={styles.statValue}>{vendor.productCount}</Text>
-            <Text style={styles.statLabel}>Products listed</Text>
+            <Text style={[styles.statValue, dyn.statValue]}>{vendor.productCount}</Text>
+            <Text style={[styles.statLabel, dyn.statLabel]}>Products listed</Text>
           </View>
-          <View style={[styles.statCell, styles.statCellBorder]}>
-            <Text style={styles.statValue}>{vendor.rating.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>Rating</Text>
+          <View style={[styles.statCell, styles.statCellBorder, dyn.statCellBorder]}>
+            <Text style={[styles.statValue, dyn.statValue]}>{vendor.rating.toFixed(1)}</Text>
+            <Text style={[styles.statLabel, dyn.statLabel]}>Rating</Text>
           </View>
           <View style={styles.statCell}>
-            <Text style={styles.statValue}>{vendor.reviewCount}</Text>
-            <Text style={styles.statLabel}>Reviews</Text>
+            <Text style={[styles.statValue, dyn.statValue]}>{vendor.reviewCount}</Text>
+            <Text style={[styles.statLabel, dyn.statLabel]}>Reviews</Text>
           </View>
         </View>
 
         {/* About */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <View style={styles.card}>
-            <Text style={styles.description}>{vendor.description}</Text>
+          <Text style={[styles.sectionTitle, dyn.sectionTitle]}>About</Text>
+          <View style={[styles.card, dyn.card]}>
+            <Text style={[styles.description, dyn.description]}>{vendor.description}</Text>
           </View>
         </View>
 
         {/* Contact */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, dyn.sectionTitle]}>Contact</Text>
+          <View style={[styles.card, dyn.card]}>
             {vendor.phone && (
               <ContactRow
                 icon={PhoneIcon}
                 label="Phone"
                 value={vendor.phone}
                 onPress={() => Linking.openURL(`tel:${vendor.phone!.replace(/\s/g, '')}`)}
+                dyn={dyn}
+                t={t}
               />
             )}
             {vendor.email && (
               <>
-                <View style={styles.contactDivider} />
+                <View style={[styles.contactDivider, dyn.contactDivider]} />
                 <ContactRow
                   icon={EnvelopeSimpleIcon}
                   label="Email"
                   value={vendor.email}
                   onPress={() => Linking.openURL(`mailto:${vendor.email}`)}
+                  dyn={dyn}
+                  t={t}
                 />
               </>
             )}
             {vendor.whatsapp && (
               <>
-                <View style={styles.contactDivider} />
+                <View style={[styles.contactDivider, dyn.contactDivider]} />
                 <ContactRow
                   icon={WhatsappLogoIcon}
                   label="WhatsApp"
@@ -180,17 +207,21 @@ export default function VendorDetailScreen() {
                     const msg = `Hello ${vendor.name}, I found you on SokoPrice and would like to inquire about your products.`;
                     Linking.openURL(`https://wa.me/${vendor.whatsapp!.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
                   }}
+                  dyn={dyn}
+                  t={t}
                 />
               </>
             )}
             {vendor.website && (
               <>
-                <View style={styles.contactDivider} />
+                <View style={[styles.contactDivider, dyn.contactDivider]} />
                 <ContactRow
                   icon={GlobeIcon}
                   label="Website"
                   value={vendor.website}
                   onPress={() => Linking.openURL(vendor.website!)}
+                  dyn={dyn}
+                  t={t}
                 />
               </>
             )}
@@ -199,16 +230,16 @@ export default function VendorDetailScreen() {
 
         {/* Location & hours */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location & hours</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, dyn.sectionTitle]}>Location & hours</Text>
+          <View style={[styles.card, dyn.card]}>
             <View style={styles.infoRow}>
-              <MapPinIcon size={16} color={colors.navy[600]} />
-              <Text style={styles.infoText}>{vendor.location}</Text>
+              <MapPinIcon size={16} color={t.textSecondary} />
+              <Text style={[styles.infoText, dyn.infoText]}>{vendor.location}</Text>
             </View>
-            <View style={styles.infoDivider} />
+            <View style={[styles.infoDivider, dyn.infoDivider]} />
             <View style={styles.infoRow}>
-              <ClockIcon size={16} color={colors.navy[600]} />
-              <Text style={styles.infoText}>{vendor.openingHours}</Text>
+              <ClockIcon size={16} color={t.textSecondary} />
+              <Text style={[styles.infoText, dyn.infoText]}>{vendor.openingHours}</Text>
             </View>
           </View>
         </View>
@@ -229,7 +260,7 @@ export default function VendorDetailScreen() {
   );
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
       <Head>
         <title>{vendor.name} — {vendor.category} — SokoPrice</title>
         <meta name="description" content={`${vendor.name} in ${vendor.location}. ${vendor.productCount} products, ${vendor.rating.toFixed(1)} rating from ${vendor.reviewCount} reviews.`} />

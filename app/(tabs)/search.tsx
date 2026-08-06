@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -19,6 +19,7 @@ import { ProductCard } from '@/components/home/ProductCard';
 import { LoadingSpinner, EmptyState, ProductCardSkeleton } from '@/components/common';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/useResponsive';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import type { ProductCategory } from '@/types';
 
 const CATEGORIES: Array<ProductCategory | 'All'> = [
@@ -35,6 +36,25 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { isDesktop, isTablet } = useBreakpoint();
   const numColumns = isDesktop ? 4 : isTablet ? 3 : 1;
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    screen: { backgroundColor: t.bg },
+    header: { backgroundColor: t.surface, borderBottomColor: t.border },
+    title: { color: t.textPrimary },
+    searchWrap: { backgroundColor: t.surfaceAlt, borderColor: t.border },
+    input: { color: t.textPrimary },
+    chipsRow: { backgroundColor: t.surface, borderBottomColor: t.border },
+    chip: { backgroundColor: t.surface, borderColor: t.border },
+    chipText: { color: t.textSecondary },
+    recentTitle: { color: t.textPrimary },
+    recentRow: { borderBottomColor: t.divider },
+    recentQuery: { color: t.textPrimary },
+    browseTitle: { color: t.textPrimary },
+    catCell: { backgroundColor: t.surface, borderColor: t.border },
+    catCellText: { color: t.textPrimary },
+    resultCount: { color: t.textSecondary },
+    resultItem: { backgroundColor: t.surface, borderTopColor: t.divider },
+  }), [t]);
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isWatchlistMode = mode === 'watchlist';
   const [query, setQuery] = useState('');
@@ -75,21 +95,21 @@ export default function SearchScreen() {
   const showEmpty = !isWatchlistMode && query.length === 0 && activeCategory === 'All';
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
       <Head>
         <title>{isWatchlistMode ? 'Your Watchlist' : 'Search Prices'} — SokoPrice</title>
         <meta name="description" content={isWatchlistMode ? 'Products you are tracking for price drops.' : 'Search and compare product prices across Nairobi vendors.'} />
       </Head>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{isWatchlistMode ? 'Watchlist' : 'Find prices'}</Text>
+      <View style={[styles.header, dyn.header]}>
+        <Text style={[styles.title, dyn.title]}>{isWatchlistMode ? 'Watchlist' : 'Find prices'}</Text>
         {!isWatchlistMode && (
-        <View style={styles.searchWrap}>
-          <MagnifyingGlassIcon size={16} color={colors.gray[400]} />
+        <View style={[styles.searchWrap, dyn.searchWrap]}>
+          <MagnifyingGlassIcon size={16} color={t.textMuted} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, dyn.input]}
             placeholder="Search products or vendors…"
-            placeholderTextColor={colors.gray[400]}
+            placeholderTextColor={t.textMuted}
             value={query}
             onChangeText={handleSearch}
             autoCapitalize="none"
@@ -97,7 +117,7 @@ export default function SearchScreen() {
           />
           {query.length > 0 && (
             <Pressable onPress={() => setQuery('')}>
-              <XCircleIcon size={18} color={colors.gray[400]} />
+              <XCircleIcon size={18} color={t.textMuted} />
             </Pressable>
           )}
         </View>
@@ -110,7 +130,7 @@ export default function SearchScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chips}
-        style={styles.chipsRow}
+        style={[styles.chipsRow, dyn.chipsRow]}
       >
         {CATEGORIES.map(cat => (
           <Pressable
@@ -118,11 +138,12 @@ export default function SearchScreen() {
             onPress={() => handleCategoryPress(cat)}
             style={({ hovered, focused }) => [
               styles.chip,
+              dyn.chip,
               activeCategory === cat && styles.chipActive,
               (hovered || focused) && activeCategory !== cat && styles.chipHovered,
             ]}
           >
-            <Text style={[styles.chipText, activeCategory === cat && styles.chipTextActive]}>
+            <Text style={[styles.chipText, dyn.chipText, activeCategory === cat && styles.chipTextActive]}>
               {cat}
             </Text>
           </Pressable>
@@ -137,7 +158,7 @@ export default function SearchScreen() {
           {recentSearches.length > 0 && (
             <View style={styles.recentSection}>
               <View style={styles.recentHeader}>
-                <Text style={styles.recentTitle}>Recent searches</Text>
+                <Text style={[styles.recentTitle, dyn.recentTitle]}>Recent searches</Text>
                 <Pressable onPress={clearRecentSearches}>
                   <Text style={styles.clearText}>Clear</Text>
                 </Pressable>
@@ -146,11 +167,11 @@ export default function SearchScreen() {
                 <Pressable
                   key={q}
                   onPress={() => handleRecentSearch(q)}
-                  style={styles.recentRow}
+                  style={[styles.recentRow, dyn.recentRow]}
                 >
-                  <ClockIcon size={16} color={colors.gray[400]} />
-                  <Text style={styles.recentQuery}>{q}</Text>
-                  <ArrowBendUpLeftIcon size={14} color={colors.gray[300]} />
+                  <ClockIcon size={16} color={t.textMuted} />
+                  <Text style={[styles.recentQuery, dyn.recentQuery]}>{q}</Text>
+                  <ArrowBendUpLeftIcon size={14} color={t.textMuted} />
                 </Pressable>
               ))}
             </View>
@@ -158,15 +179,15 @@ export default function SearchScreen() {
 
           {/* Browse by category */}
           <View style={styles.browseSection}>
-            <Text style={styles.browseTitle}>Browse by category</Text>
+            <Text style={[styles.browseTitle, dyn.browseTitle]}>Browse by category</Text>
             <View style={styles.catGrid}>
               {CATEGORIES.filter(c => c !== 'All').map(cat => (
                 <Pressable
                   key={cat}
                   onPress={() => handleCategoryPress(cat)}
-                  style={styles.catCell}
+                  style={[styles.catCell, dyn.catCell]}
                 >
-                  <Text style={styles.catCellText}>{cat}</Text>
+                  <Text style={[styles.catCellText, dyn.catCellText]}>{cat}</Text>
                 </Pressable>
               ))}
             </View>
@@ -207,13 +228,13 @@ export default function SearchScreen() {
             contentContainerStyle={styles.listContent}
             columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
             ListHeaderComponent={
-              <Text style={styles.resultCount}>
+              <Text style={[styles.resultCount, dyn.resultCount]}>
                 {results.length} {results.length === 1 ? 'product' : 'products'}
                 {activeCategory !== 'All' ? ` in ${activeCategory}` : ''}
               </Text>
             }
             renderItem={({ item, index }) => (
-              <View style={numColumns > 1 ? styles.gridItem : styles.resultItem}>
+              <View style={numColumns > 1 ? styles.gridItem : [styles.resultItem, dyn.resultItem]}>
                 <ProductCard
                   product={item}
                   variant={numColumns > 1 ? 'vertical' : 'horizontal'}

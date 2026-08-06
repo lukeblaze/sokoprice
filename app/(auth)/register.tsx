@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -15,10 +15,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon, UserIcon, BuildingsIcon, PhoneIcon, EnvelopeSimpleIcon, LockIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
 import { useAppStore } from '@/store';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
   const signIn = useAppStore(s => s.signIn);
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    form: { backgroundColor: t.surface },
+    fieldLabel: { color: t.textPrimary },
+    inputWrap: { backgroundColor: t.surfaceAlt, borderColor: t.border },
+    input: { color: t.textPrimary },
+  }), [t]);
   const [form, setForm] = useState({
     name: '',
     businessName: '',
@@ -64,7 +72,7 @@ export default function RegisterScreen() {
         </View>
 
         {/* Form */}
-        <View style={styles.form}>
+        <View style={[styles.form, dyn.form]}>
           {[
             { key: 'name', label: 'Your name', placeholder: 'Blaze Murimi', icon: UserIcon, autoCapitalize: 'words' as const },
             { key: 'businessName', label: 'Business name', placeholder: 'Blaze Solutions Ltd', icon: BuildingsIcon, autoCapitalize: 'words' as const },
@@ -73,13 +81,13 @@ export default function RegisterScreen() {
             { key: 'password', label: 'Password', placeholder: 'Choose a strong password', icon: LockIcon, secure: true, autoCapitalize: 'none' as const },
           ].map(f => (
             <View key={f.key} style={styles.field}>
-              <Text style={styles.fieldLabel}>{f.label}</Text>
-              <View style={styles.inputWrap}>
-                <f.icon size={16} color={colors.gray[400]} />
+              <Text style={[styles.fieldLabel, dyn.fieldLabel]}>{f.label}</Text>
+              <View style={[styles.inputWrap, dyn.inputWrap]}>
+                <f.icon size={16} color={t.textMuted} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, dyn.input]}
                   placeholder={f.placeholder}
-                  placeholderTextColor={colors.gray[300]}
+                  placeholderTextColor={t.textMuted}
                   value={(form as any)[f.key]}
                   onChangeText={set(f.key)}
                   secureTextEntry={f.secure}

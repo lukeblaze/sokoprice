@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -15,10 +15,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EnvelopeSimpleIcon, LockIcon, EyeIcon, EyeSlashIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
 import { useAppStore } from '@/store';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const signIn = useAppStore(s => s.signIn);
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    form: { backgroundColor: t.surface },
+    formTitle: { color: t.textPrimary },
+    fieldLabel: { color: t.textPrimary },
+    inputWrap: { backgroundColor: t.surfaceAlt, borderColor: t.border },
+    input: { color: t.textPrimary },
+    dividerLine: { backgroundColor: t.border },
+    registerBtn: { borderColor: t.border },
+    registerBtnText: { color: t.textPrimary },
+  }), [t]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -57,17 +69,17 @@ export default function LoginScreen() {
         </View>
 
         {/* Form */}
-        <View style={styles.form}>
-          <Text style={styles.formTitle}>Sign in</Text>
+        <View style={[styles.form, dyn.form]}>
+          <Text style={[styles.formTitle, dyn.formTitle]}>Sign in</Text>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Email address</Text>
-            <View style={styles.inputWrap}>
-              <EnvelopeSimpleIcon size={16} color={colors.gray[400]} />
+            <Text style={[styles.fieldLabel, dyn.fieldLabel]}>Email address</Text>
+            <View style={[styles.inputWrap, dyn.inputWrap]}>
+              <EnvelopeSimpleIcon size={16} color={t.textMuted} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, dyn.input]}
                 placeholder="you@company.co.ke"
-                placeholderTextColor={colors.gray[300]}
+                placeholderTextColor={t.textMuted}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -78,13 +90,13 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Password</Text>
-            <View style={styles.inputWrap}>
-              <LockIcon size={16} color={colors.gray[400]} />
+            <Text style={[styles.fieldLabel, dyn.fieldLabel]}>Password</Text>
+            <View style={[styles.inputWrap, dyn.inputWrap]}>
+              <LockIcon size={16} color={t.textMuted} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, dyn.input]}
                 placeholder="Your password"
-                placeholderTextColor={colors.gray[300]}
+                placeholderTextColor={t.textMuted}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -92,9 +104,9 @@ export default function LoginScreen() {
               />
               <Pressable onPress={() => setShowPassword(v => !v)}>
                 {showPassword ? (
-                  <EyeSlashIcon size={16} color={colors.gray[400]} />
+                  <EyeSlashIcon size={16} color={t.textMuted} />
                 ) : (
-                  <EyeIcon size={16} color={colors.gray[400]} />
+                  <EyeIcon size={16} color={t.textMuted} />
                 )}
               </Pressable>
             </View>
@@ -115,13 +127,13 @@ export default function LoginScreen() {
           </Pressable>
 
           <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, dyn.dividerLine]} />
             <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, dyn.dividerLine]} />
           </View>
 
-          <Pressable onPress={() => router.push('/(auth)/register')} style={styles.registerBtn}>
-            <Text style={styles.registerBtnText}>Create a business account</Text>
+          <Pressable onPress={() => router.push('/(auth)/register')} style={[styles.registerBtn, dyn.registerBtn]}>
+            <Text style={[styles.registerBtnText, dyn.registerBtnText]}>Create a business account</Text>
           </Pressable>
         </View>
 

@@ -16,7 +16,7 @@ import { useProductSearch, useProducts } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { ProductCard } from '@/components/home/ProductCard';
-import { LoadingSpinner, EmptyState } from '@/components/common';
+import { LoadingSpinner, EmptyState, ProductCardSkeleton } from '@/components/common';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/useResponsive';
 import type { ProductCategory } from '@/types';
@@ -173,7 +173,15 @@ export default function SearchScreen() {
           </View>
         </ScrollView>
       ) : isLoading ? (
-        <LoadingSpinner />
+        <ResponsiveContainer>
+          <View style={numColumns > 1 ? [styles.gridRow, { flexWrap: 'wrap', paddingTop: 8 }] : undefined}>
+            {Array.from({ length: numColumns > 1 ? numColumns * 3 : 6 }).map((_, i) => (
+              <View key={i} style={numColumns > 1 ? styles.gridItem : undefined}>
+                <ProductCardSkeleton variant={numColumns > 1 ? 'vertical' : 'horizontal'} />
+              </View>
+            ))}
+          </View>
+        </ResponsiveContainer>
       ) : !results || results.length === 0 ? (
         isWatchlistMode ? (
           <EmptyState
@@ -204,13 +212,14 @@ export default function SearchScreen() {
                 {activeCategory !== 'All' ? ` in ${activeCategory}` : ''}
               </Text>
             }
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <View style={numColumns > 1 ? styles.gridItem : styles.resultItem}>
                 <ProductCard
                   product={item}
                   variant={numColumns > 1 ? 'vertical' : 'horizontal'}
                   style={numColumns > 1 ? styles.gridCard : undefined}
                   onPress={() => handleProductPress(item.id, item.name)}
+                  index={index}
                 />
               </View>
             )}

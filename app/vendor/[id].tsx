@@ -33,6 +33,8 @@ import { colors, radii, typography } from '@/theme/tokens';
 import { VendorAvatar, VendorBadgeChip, LoadingSpinner } from '@/components/common';
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
+import { usePressScale } from '@/hooks/usePressScale';
+import Animated from 'react-native-reanimated';
 
 function ContactRow({
   icon: Icon,
@@ -45,17 +47,25 @@ function ContactRow({
   value: string;
   onPress?: () => void;
 }) {
+  const press = usePressScale(0.98);
   return (
-    <Pressable onPress={onPress} style={styles.contactRow}>
-      <View style={styles.contactIcon}>
-        <Icon size={16} color={colors.navy[600]} />
-      </View>
-      <View style={styles.contactInfo}>
-        <Text style={styles.contactLabel}>{label}</Text>
-        <Text style={styles.contactValue}>{value}</Text>
-      </View>
-      {onPress && <CaretRightIcon size={14} color={colors.gray[300]} />}
-    </Pressable>
+    <Animated.View style={press.animStyle}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        style={({ hovered }) => [styles.contactRow, hovered && styles.contactRowHovered]}
+      >
+        <View style={styles.contactIcon}>
+          <Icon size={16} color={colors.navy[600]} />
+        </View>
+        <View style={styles.contactInfo}>
+          <Text style={styles.contactLabel}>{label}</Text>
+          <Text style={styles.contactValue}>{value}</Text>
+        </View>
+        {onPress && <CaretRightIcon size={14} color={colors.gray[300]} />}
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -67,6 +77,7 @@ export default function VendorDetailScreen() {
   const { data: vendor, isLoading } = useVendor(id);
   const toggleSavedVendor = useAppStore(s => s.toggleSavedVendor);
   const isSaved = useAppStore(s => s.isSavedVendor(id));
+  const ctaPress = usePressScale();
 
   const handleSave = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -203,13 +214,17 @@ export default function VendorDetailScreen() {
         </View>
 
         {/* CTA */}
-        <Pressable
-          onPress={() => router.push({ pathname: '/(tabs)/search', params: { vendor: vendor.name } })}
-          style={styles.ctaBtn}
-        >
-          <TagIcon size={18} color={colors.white} />
-          <Text style={styles.ctaBtnText}>View {vendor.productCount} products</Text>
-        </Pressable>
+        <Animated.View style={ctaPress.animStyle}>
+          <Pressable
+            onPress={() => router.push({ pathname: '/(tabs)/search', params: { vendor: vendor.name } })}
+            onPressIn={ctaPress.onPressIn}
+            onPressOut={ctaPress.onPressOut}
+            style={styles.ctaBtn}
+          >
+            <TagIcon size={18} color={colors.white} />
+            <Text style={styles.ctaBtnText}>View {vendor.productCount} products</Text>
+          </Pressable>
+        </Animated.View>
     </>
   );
 
@@ -417,6 +432,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 2,
+    borderRadius: radii.md,
+  },
+  contactRowHovered: {
+    backgroundColor: colors.gray[50],
   },
   contactIcon: {
     width: 32,

@@ -17,7 +17,7 @@ import { useAppStore } from '@/store';
 import { colors, radii, shadows, spacing, typography } from '@/theme/tokens';
 import { PriceTicker } from '@/components/home/PriceTicker';
 import { ProductCard } from '@/components/home/ProductCard';
-import { SectionLabel, LoadingSpinner, PriceChangePill } from '@/components/common';
+import { SectionLabel, LoadingSpinner, PriceChangePill, ProductCardSkeleton } from '@/components/common';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { formatKES, formatRelativeTime } from '@/utils/format';
@@ -133,7 +133,14 @@ export default function HomeScreen() {
 
         {/* Trending */}
         {productsLoading ? (
-          <LoadingSpinner />
+          <View style={styles.section}>
+            <SectionLabel>Trending products</SectionLabel>
+            <View style={[styles.hScroll, { flexDirection: 'row' }]}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </View>
+          </View>
         ) : (
           <View style={styles.section}>
             <SectionLabel>Trending products</SectionLabel>
@@ -142,12 +149,13 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.hScroll}
             >
-              {trending.map(p => (
+              {trending.map((p, i) => (
                 <ProductCard
                   key={p.id}
                   product={p}
                   variant="vertical"
                   onPress={() => router.push(`/product/${p.id}`)}
+                  index={i}
                 />
               ))}
             </ScrollView>
@@ -159,13 +167,14 @@ export default function HomeScreen() {
           <SectionLabel>Latest updates</SectionLabel>
           {isDesktop ? (
             <View style={styles.updatesGrid}>
-              {recent.slice(0, 8).map(p => (
+              {recent.slice(0, 8).map((p, i) => (
                 <ProductCard
                   key={p.id}
                   product={p}
                   variant="vertical"
                   style={styles.updatesGridCard}
                   onPress={() => router.push(`/product/${p.id}`)}
+                  index={i}
                 />
               ))}
             </View>

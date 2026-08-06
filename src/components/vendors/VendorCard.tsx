@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { CheckCircleIcon, StarIcon, MapPinIcon } from 'phosphor-react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorBadgeChip, VendorAvatar } from '@/components/common';
 import type { Vendor } from '@/types';
@@ -11,9 +11,12 @@ interface Props {
   vendor: Vendor;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
+  index?: number;
 }
 
-export function VendorCard({ vendor, onPress, style }: Props) {
+const MAX_STAGGER_INDEX = 12;
+
+export function VendorCard({ vendor, onPress, style, index }: Props) {
   const scale = useSharedValue(1);
   const [hovered, setHovered] = useState(false);
   const animStyle = useAnimatedStyle(() => ({
@@ -21,7 +24,14 @@ export function VendorCard({ vendor, onPress, style }: Props) {
   }));
 
   return (
-    <Animated.View style={[styles.card, hovered && styles.cardHovered, animStyle, style]}>
+    <Animated.View
+      entering={
+        index !== undefined
+          ? FadeInDown.delay(Math.min(index, MAX_STAGGER_INDEX) * 45).springify().damping(18)
+          : undefined
+      }
+      style={[styles.card, hovered && styles.cardHovered, animStyle, style]}
+    >
       <Pressable
         onPress={onPress}
         onPressIn={() => { scale.value = withSpring(0.98, { damping: 15 }); }}

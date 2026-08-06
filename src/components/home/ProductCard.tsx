@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Pressable, StyleSheet, Image, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '@/components/common/Text';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { colors, radii, shadows, typography } from '@/theme/tokens';
 import { PriceChangePill, CATEGORY_ICONS, CATEGORY_ICON_FALLBACK } from '@/components/common';
 import { formatKES } from '@/utils/format';
@@ -12,7 +12,12 @@ interface Props {
   onPress: () => void;
   variant?: 'horizontal' | 'vertical';
   style?: StyleProp<ViewStyle>;
+  index?: number;
 }
+
+// Caps stagger to the first dozen cards so long lists don't queue up
+// dozens of overlapping entrance animations.
+const MAX_STAGGER_INDEX = 12;
 
 function ProductThumb({ product, wrapStyle, iconSize }: {
   product: Product;
@@ -38,7 +43,7 @@ function ProductThumb({ product, wrapStyle, iconSize }: {
   );
 }
 
-export function ProductCard({ product, onPress, variant = 'vertical', style }: Props) {
+export function ProductCard({ product, onPress, variant = 'vertical', style, index }: Props) {
   const scale = useSharedValue(1);
   const [hovered, setHovered] = useState(false);
 
@@ -48,6 +53,11 @@ export function ProductCard({ product, onPress, variant = 'vertical', style }: P
 
   return (
     <Animated.View
+      entering={
+        index !== undefined
+          ? FadeInDown.delay(Math.min(index, MAX_STAGGER_INDEX) * 45).springify().damping(18)
+          : undefined
+      }
       style={[
         variant === 'vertical' ? styles.cardVertical : styles.cardHorizontal,
         hovered && styles.cardHovered,

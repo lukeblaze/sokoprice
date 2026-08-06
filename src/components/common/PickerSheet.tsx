@@ -2,6 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef, useCallback } from 'rea
 import { View, StyleSheet, Pressable, Platform, Modal } from 'react-native';
 import { Text } from './Text';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { CheckIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
 
@@ -88,22 +89,25 @@ const WebPickerSheet = forwardRef<PickerSheetHandle, Props>(
     }));
 
     return (
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
-        <Pressable style={styles.webBackdrop} onPress={() => setVisible(false)}>
-          <Pressable style={styles.webCard} onPress={e => e.stopPropagation()}>
-            <Text style={styles.title}>{title}</Text>
-            {options.map(opt => (
-              <Pressable
-                key={opt.value}
-                style={styles.row}
-                onPress={() => { onSelect(opt.value); setVisible(false); }}
-              >
-                <Text style={styles.rowLabel}>{opt.label}</Text>
-                {opt.value === value && <CheckIcon size={18} color={colors.amber[600]} weight="bold" />}
-              </Pressable>
-            ))}
-          </Pressable>
-        </Pressable>
+      <Modal visible={visible} transparent animationType="none" onRequestClose={() => setVisible(false)}>
+        <Animated.View entering={FadeIn.duration(180)} style={styles.webBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setVisible(false)} />
+          <Animated.View entering={SlideInDown.springify().damping(19).mass(0.7)} style={styles.webCardWrap}>
+            <Pressable style={styles.webCard} onPress={e => e.stopPropagation()}>
+              <Text style={styles.title}>{title}</Text>
+              {options.map(opt => (
+                <Pressable
+                  key={opt.value}
+                  style={({ hovered }) => [styles.row, hovered && styles.rowHovered]}
+                  onPress={() => { onSelect(opt.value); setVisible(false); }}
+                >
+                  <Text style={styles.rowLabel}>{opt.label}</Text>
+                  {opt.value === value && <CheckIcon size={18} color={colors.amber[600]} weight="bold" />}
+                </Pressable>
+              ))}
+            </Pressable>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     );
   }
@@ -130,9 +134,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  webCard: {
+  webCardWrap: {
     width: '100%',
     maxWidth: 360,
+  },
+  webCard: {
+    width: '100%',
     backgroundColor: colors.white,
     borderRadius: radii.xl,
     paddingHorizontal: 20,
@@ -150,8 +157,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: radii.md,
     borderBottomWidth: 0.5,
     borderBottomColor: colors.gray[100],
+  },
+  rowHovered: {
+    backgroundColor: colors.gray[50],
   },
   rowLabel: {
     fontSize: typography.sizes.base,

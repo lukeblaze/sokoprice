@@ -15,7 +15,7 @@ import { useVendors, useVendorSearch } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorCard } from '@/components/vendors/VendorCard';
-import { LoadingSpinner, EmptyState } from '@/components/common';
+import { LoadingSpinner, EmptyState, VendorCardSkeleton } from '@/components/common';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/useResponsive';
 
@@ -76,7 +76,13 @@ export default function VendorsScreen() {
 
       {/* List */}
       {isLoading ? (
-        <LoadingSpinner />
+        <ResponsiveContainer>
+          <View style={numColumns > 1 ? [styles.gridRow, { flexWrap: 'wrap', paddingTop: 16 }] : { paddingTop: 16 }}>
+            {Array.from({ length: numColumns > 1 ? numColumns * 2 : 5 }).map((_, i) => (
+              <VendorCardSkeleton key={i} style={numColumns > 1 ? styles.gridCard : undefined} />
+            ))}
+          </View>
+        </ResponsiveContainer>
       ) : !vendors || vendors.length === 0 ? (
         isSavedMode ? (
           <EmptyState
@@ -106,11 +112,12 @@ export default function VendorsScreen() {
                 {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} {isSavedMode ? 'saved' : 'in Nairobi'}
               </Text>
             }
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <VendorCard
                 vendor={item}
                 style={numColumns > 1 ? styles.gridCard : undefined}
                 onPress={() => router.push(`/vendor/${item.id}`)}
+                index={index}
               />
             )}
           />

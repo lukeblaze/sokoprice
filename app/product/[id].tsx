@@ -32,6 +32,8 @@ import { formatKES, formatPriceChange, pricePercentage, formatShortDate } from '
 import { useSkiaWebReady } from '@/utils/skiaWeb';
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
+import { usePressScale } from '@/hooks/usePressScale';
+import Animated from 'react-native-reanimated';
 
 // Deferred until Skia's CanvasKit WASM is confirmed ready (web) — importing
 // victory-native/@shopify/react-native-skia any earlier binds their Skia
@@ -80,6 +82,7 @@ export default function ProductDetailScreen() {
 
   const [alertSet, setAlertSet] = useState(false);
   const watchlisted = isWatchlisted(id);
+  const ctaPress = usePressScale();
 
   const handleWatchlist = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -248,7 +251,10 @@ export default function ProductDetailScreen() {
                     {listing.contactPhone && (
                       <Pressable
                         onPress={() => handleWhatsApp(listing.contactPhone, product.name)}
-                        style={styles.contactBtn}
+                        style={({ pressed, hovered }) => [
+                          styles.contactBtn,
+                          (pressed || hovered) && styles.contactBtnPressed,
+                        ]}
                       >
                         <WhatsappLogoIcon size={14} color={colors.green[600]} weight="fill" />
                         <Text style={styles.contactBtnText}>WhatsApp</Text>
@@ -257,7 +263,10 @@ export default function ProductDetailScreen() {
                     {listing.contactPhone && (
                       <Pressable
                         onPress={() => handleContactVendor(listing.contactPhone)}
-                        style={styles.contactBtnSecondary}
+                        style={({ pressed, hovered }) => [
+                          styles.contactBtnSecondary,
+                          (pressed || hovered) && styles.contactBtnSecondaryPressed,
+                        ]}
                       >
                         <PhoneIcon size={14} color={colors.navy[700]} />
                         <Text style={styles.contactBtnSecondaryText}>Call</Text>
@@ -272,19 +281,23 @@ export default function ProductDetailScreen() {
 
         {/* Alert CTA */}
         <View style={styles.ctaRow}>
-          <Pressable
-            onPress={handleSetAlert}
-            style={[styles.ctaBtn, alertSet && styles.ctaBtnDone]}
-          >
-            {alertSet ? (
-              <CheckCircleIcon size={18} color={colors.green[600]} weight="fill" />
-            ) : (
-              <BellIcon size={18} color={colors.amber[600]} />
-            )}
-            <Text style={[styles.ctaBtnText, alertSet && { color: colors.green[600] }]}>
-              {alertSet ? 'Alert set' : 'Set price alert'}
-            </Text>
-          </Pressable>
+          <Animated.View style={ctaPress.animStyle}>
+            <Pressable
+              onPress={handleSetAlert}
+              onPressIn={ctaPress.onPressIn}
+              onPressOut={ctaPress.onPressOut}
+              style={[styles.ctaBtn, alertSet && styles.ctaBtnDone]}
+            >
+              {alertSet ? (
+                <CheckCircleIcon size={18} color={colors.green[600]} weight="fill" />
+              ) : (
+                <BellIcon size={18} color={colors.amber[600]} />
+              )}
+              <Text style={[styles.ctaBtnText, alertSet && { color: colors.green[600] }]}>
+                {alertSet ? 'Alert set' : 'Set price alert'}
+              </Text>
+            </Pressable>
+          </Animated.View>
         </View>
     </>
   );
@@ -593,6 +606,10 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: colors.green[400] + '44',
   },
+  contactBtnPressed: {
+    borderColor: colors.green[600],
+    transform: [{ scale: 0.96 }],
+  },
   contactBtnText: {
     fontSize: 12,
     fontWeight: '500',
@@ -608,6 +625,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.navy[50],
     borderWidth: 0.5,
     borderColor: colors.navy[200],
+  },
+  contactBtnSecondaryPressed: {
+    borderColor: colors.navy[500],
+    transform: [{ scale: 0.96 }],
   },
   contactBtnSecondaryText: {
     fontSize: 12,

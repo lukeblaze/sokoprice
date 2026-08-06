@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, MagnifyingGlassIcon, TrendDownIcon, TagIcon } from 'phosphor-react-native';
 import { useMarketSummary, useMarketTicker, useProducts } from '@/hooks/useQueries';
@@ -17,10 +18,13 @@ import { colors, radii, shadows, spacing, typography } from '@/theme/tokens';
 import { PriceTicker } from '@/components/home/PriceTicker';
 import { ProductCard } from '@/components/home/ProductCard';
 import { SectionLabel, LoadingSpinner, PriceChangePill } from '@/components/common';
+import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
+import { useBreakpoint } from '@/hooks/useResponsive';
 import { formatKES, formatRelativeTime } from '@/utils/format';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useBreakpoint();
   const user = useAppStore(s => s.user);
   const unreadCount = useAppStore(s => s.unreadCount);
 
@@ -41,6 +45,10 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Head>
+        <title>SokoPrice — Compare vendor prices in Nairobi, live</title>
+        <meta name="description" content="Track and compare product prices across Nairobi vendors in real time. IT, office supplies, and more." />
+      </Head>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -96,6 +104,7 @@ export default function HomeScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       >
+        <ResponsiveContainer>
         {/* Market stats */}
         {summaryLoading ? (
           <LoadingSpinner />
@@ -148,30 +157,45 @@ export default function HomeScreen() {
         {/* Latest price updates */}
         <View style={styles.section}>
           <SectionLabel>Latest updates</SectionLabel>
-          <View style={styles.feedCard}>
-            {recent.slice(0, 6).map((p, i) => (
-              <Pressable
-                key={p.id}
-                onPress={() => router.push(`/product/${p.id}`)}
-                style={[styles.feedRow, i === Math.min(5, recent.length - 1) && styles.feedRowLast]}
-              >
-                <View style={styles.feedIconWrap}>
-                  <TagIcon size={16} color={colors.gray[500]} />
-                </View>
-                <View style={styles.feedInfo}>
-                  <Text style={styles.feedName} numberOfLines={1}>{p.name}</Text>
-                  <Text style={styles.feedMeta}>{p.category} · {p.vendorCount} vendors</Text>
-                </View>
-                <View style={styles.feedRight}>
-                  <Text style={styles.feedPrice}>{formatKES(p.bestPrice)}</Text>
-                  <PriceChangePill pct={p.priceChangePct} />
-                </View>
-              </Pressable>
-            ))}
-          </View>
+          {isDesktop ? (
+            <View style={styles.updatesGrid}>
+              {recent.slice(0, 8).map(p => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  variant="vertical"
+                  style={styles.updatesGridCard}
+                  onPress={() => router.push(`/product/${p.id}`)}
+                />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.feedCard}>
+              {recent.slice(0, 6).map((p, i) => (
+                <Pressable
+                  key={p.id}
+                  onPress={() => router.push(`/product/${p.id}`)}
+                  style={[styles.feedRow, i === Math.min(5, recent.length - 1) && styles.feedRowLast]}
+                >
+                  <View style={styles.feedIconWrap}>
+                    <TagIcon size={16} color={colors.gray[500]} />
+                  </View>
+                  <View style={styles.feedInfo}>
+                    <Text style={styles.feedName} numberOfLines={1}>{p.name}</Text>
+                    <Text style={styles.feedMeta}>{p.category} · {p.vendorCount} vendors</Text>
+                  </View>
+                  <View style={styles.feedRight}>
+                    <Text style={styles.feedPrice}>{formatKES(p.bestPrice)}</Text>
+                    <PriceChangePill pct={p.priceChangePct} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 24 }} />
+        </ResponsiveContainer>
       </ScrollView>
     </View>
   );
@@ -389,5 +413,14 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontFamily: typography.displayFontMedium,
     color: colors.navy[800],
+  },
+  updatesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  updatesGridCard: {
+    width: 200,
   },
 });

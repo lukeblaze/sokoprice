@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { useLocalSearchParams, router } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeftIcon,
@@ -30,6 +31,8 @@ import { useVendor } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorAvatar, VendorBadgeChip, LoadingSpinner } from '@/components/common';
+import { useBreakpoint } from '@/hooks/useResponsive';
+import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 
 function ContactRow({
   icon: Icon,
@@ -59,6 +62,7 @@ function ContactRow({
 export default function VendorDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useBreakpoint();
 
   const { data: vendor, isLoading } = useVendor(id);
   const toggleSavedVendor = useAppStore(s => s.toggleSavedVendor);
@@ -84,43 +88,29 @@ export default function VendorDetailScreen() {
     );
   }
 
-  return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeftIcon size={20} color={colors.white} />
-        </Pressable>
-        <Pressable onPress={handleSave} style={styles.saveBtn}>
-          <BookmarkSimpleIcon
-            size={20}
-            color={isSaved ? colors.amber[400] : colors.white}
-            weight={isSaved ? 'fill' : 'duotone'}
-          />
-        </Pressable>
-      </View>
-
-      {/* Vendor hero */}
-      <View style={styles.vendorHero}>
-        <VendorAvatar initials={vendor.initials} colorHex={vendor.colorHex} size={64} logoUrl={vendor.logoUrl} />
-        <View style={styles.heroInfo}>
-          <View style={styles.heroNameRow}>
-            <Text style={styles.heroName}>{vendor.name}</Text>
-            {vendor.isVerified && (
-              <CheckCircleIcon size={18} color={colors.green[400]} weight="fill" />
-            )}
-          </View>
-          <Text style={styles.heroCategory}>{vendor.category}</Text>
-          <View style={styles.heroMeta}>
-            <StarIcon size={13} color={colors.amber[400]} weight="fill" />
-            <Text style={styles.heroRating}>{vendor.rating.toFixed(1)}</Text>
-            <Text style={styles.heroReviews}>({vendor.reviewCount} reviews)</Text>
-            <VendorBadgeChip badge={vendor.badge} />
-          </View>
+  const heroContent = (
+    <>
+      <VendorAvatar initials={vendor.initials} colorHex={vendor.colorHex} size={64} logoUrl={vendor.logoUrl} />
+      <View style={styles.heroInfo}>
+        <View style={styles.heroNameRow}>
+          <Text style={styles.heroName}>{vendor.name}</Text>
+          {vendor.isVerified && (
+            <CheckCircleIcon size={18} color={colors.green[400]} weight="fill" />
+          )}
+        </View>
+        <Text style={styles.heroCategory}>{vendor.category}</Text>
+        <View style={styles.heroMeta}>
+          <StarIcon size={13} color={colors.amber[400]} weight="fill" />
+          <Text style={styles.heroRating}>{vendor.rating.toFixed(1)}</Text>
+          <Text style={styles.heroReviews}>({vendor.reviewCount} reviews)</Text>
+          <VendorBadgeChip badge={vendor.badge} />
         </View>
       </View>
+    </>
+  );
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+  const mainSections = (
+    <>
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCell}>
@@ -220,9 +210,52 @@ export default function VendorDetailScreen() {
           <TagIcon size={18} color={colors.white} />
           <Text style={styles.ctaBtnText}>View {vendor.productCount} products</Text>
         </Pressable>
+    </>
+  );
 
-        <View style={{ height: insets.bottom + 24 }} />
-      </ScrollView>
+  return (
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Head>
+        <title>{vendor.name} — {vendor.category} — SokoPrice</title>
+        <meta name="description" content={`${vendor.name} in ${vendor.location}. ${vendor.productCount} products, ${vendor.rating.toFixed(1)} rating from ${vendor.reviewCount} reviews.`} />
+      </Head>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeftIcon size={20} color={colors.white} />
+        </Pressable>
+        <Pressable onPress={handleSave} style={styles.saveBtn}>
+          <BookmarkSimpleIcon
+            size={20}
+            color={isSaved ? colors.amber[400] : colors.white}
+            weight={isSaved ? 'fill' : 'duotone'}
+          />
+        </Pressable>
+      </View>
+
+      {isDesktop ? (
+        <ResponsiveContainer>
+          <View style={styles.desktopRow}>
+            <View style={styles.desktopHeroPane}>{heroContent}</View>
+            <ScrollView
+              style={styles.desktopContentPane}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {mainSections}
+              <View style={{ height: insets.bottom + 24 }} />
+            </ScrollView>
+          </View>
+        </ResponsiveContainer>
+      ) : (
+        <>
+          <View style={styles.vendorHero}>{heroContent}</View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            {mainSections}
+            <View style={{ height: insets.bottom + 24 }} />
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }
@@ -302,6 +335,29 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 20,
     paddingHorizontal: 20,
+  },
+  desktopRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 24,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  desktopHeroPane: {
+    width: 380,
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: colors.navy[800],
+    borderRadius: radii.xl,
+    padding: 24,
+    position: 'sticky' as any,
+    top: 24,
+  },
+  desktopContentPane: {
+    flex: 1,
   },
   statsRow: {
     flexDirection: 'row',

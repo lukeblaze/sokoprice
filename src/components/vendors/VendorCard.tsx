@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { CheckCircleIcon, StarIcon, MapPinIcon } from 'phosphor-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -10,20 +10,24 @@ import type { Vendor } from '@/types';
 interface Props {
   vendor: Vendor;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function VendorCard({ vendor, onPress }: Props) {
+export function VendorCard({ vendor, onPress, style }: Props) {
   const scale = useSharedValue(1);
+  const [hovered, setHovered] = useState(false);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   return (
-    <Animated.View style={[styles.card, animStyle]}>
+    <Animated.View style={[styles.card, hovered && styles.cardHovered, animStyle, style]}>
       <Pressable
         onPress={onPress}
         onPressIn={() => { scale.value = withSpring(0.98, { damping: 15 }); }}
         onPressOut={() => { scale.value = withSpring(1, { damping: 15 }); }}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
         style={styles.inner}
       >
         <VendorAvatar initials={vendor.initials} colorHex={vendor.colorHex} size={48} logoUrl={vendor.logoUrl} />
@@ -64,6 +68,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 10,
     overflow: 'hidden',
+  },
+  cardHovered: {
+    borderColor: colors.amber[400],
   },
   inner: {
     flexDirection: 'row',

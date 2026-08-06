@@ -27,6 +27,7 @@ import { colors, radii, typography } from '@/theme/tokens';
 import { showMessage } from 'react-native-flash-message';
 import { useRef } from 'react';
 import { PickerSheet, type PickerSheetHandle } from '@/components/common/PickerSheet';
+import Head from 'expo-router/head';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
@@ -56,7 +57,14 @@ interface SettingsRowProps {
 
 function SettingsRow({ icon: Icon, label, value, onPress, danger, iconBg, iconColor, comingSoon }: SettingsRowProps) {
   return (
-    <Pressable onPress={onPress} style={[styles.settingsRow, comingSoon && styles.settingsRowDisabled]}>
+    <Pressable
+      onPress={onPress}
+      style={({ hovered, focused }) => [
+        styles.settingsRow,
+        comingSoon && styles.settingsRowDisabled,
+        (hovered || focused) && !comingSoon && styles.settingsRowHovered,
+      ]}
+    >
       <View style={[styles.settingsIcon, { backgroundColor: iconBg ?? colors.gray[100] }]}>
         <Icon size={17} color={iconColor ?? colors.gray[500]} />
       </View>
@@ -137,6 +145,10 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Head>
+        <title>Your Profile — SokoPrice</title>
+        <meta name="description" content="Manage your account, preferences, and business details." />
+      </Head>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Hero */}
         <View style={styles.hero}>
@@ -374,6 +386,9 @@ const styles = StyleSheet.create({
   },
   settingsRowDisabled: {
     opacity: 0.5,
+  },
+  settingsRowHovered: {
+    backgroundColor: colors.gray[50],
   },
   comingSoonTag: {
     fontSize: 10,

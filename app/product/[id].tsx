@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { useLocalSearchParams, router } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeftIcon,
@@ -29,6 +30,8 @@ import { colors, radii, typography, shadows } from '@/theme/tokens';
 import { TagChip, VendorBadgeChip, LoadingSpinner } from '@/components/common';
 import { formatKES, formatPriceChange, pricePercentage, formatShortDate } from '@/utils/format';
 import { useSkiaWebReady } from '@/utils/skiaWeb';
+import { useBreakpoint } from '@/hooks/useResponsive';
+import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 
 // Deferred until Skia's CanvasKit WASM is confirmed ready (web) — importing
 // victory-native/@shopify/react-native-skia any earlier binds their Skia
@@ -65,6 +68,7 @@ const chartStyles = StyleSheet.create({
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useBreakpoint();
 
   const { data: product, isLoading: productLoading } = useProduct(id);
   const { data: trend } = useProductTrend(id);
@@ -127,63 +131,44 @@ export default function ProductDetailScreen() {
 
   const isUp = product.priceChangePct >= 0;
 
-  return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeftIcon size={20} color={colors.white} />
-        </Pressable>
-        <View style={styles.headerActions}>
-          <Pressable onPress={handleWatchlist} style={styles.iconBtn}>
-            <HeartIcon
-              size={20}
-              color={watchlisted ? colors.red[400] : colors.white}
-              weight={watchlisted ? 'fill' : 'duotone'}
-            />
-          </Pressable>
-          <Pressable onPress={() => {}} style={styles.iconBtn}>
-            <ShareNetworkIcon size={20} color={colors.white} />
-          </Pressable>
+  const heroContent = (
+    <>
+      {product.imageUrl && (
+        <View style={styles.heroImageWrap}>
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        </View>
+      )}
+      <Text style={styles.heroCategory}>{product.category} · {product.subcategory}</Text>
+      <Text style={styles.heroName}>{product.name}</Text>
+      <View style={styles.heroPriceRow}>
+        <Text style={styles.heroBestPrice}>{formatKES(product.bestPrice)}</Text>
+        <Text style={styles.heroPriceLabel}>best price</Text>
+        <View style={[styles.changeChip, isUp ? styles.changeUp : styles.changeDn]}>
+          <Text style={[styles.changeText, isUp ? styles.changeTextUp : styles.changeTextDn]}>
+            {isUp ? '▲' : '▼'} {Math.abs(product.priceChangePct).toFixed(1)}%
+          </Text>
         </View>
       </View>
-
-      {/* Product hero */}
-      <View style={styles.productHero}>
-        {product.imageUrl && (
-          <View style={styles.heroImageWrap}>
-            <Image
-              source={{ uri: product.imageUrl }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="cover"
-            />
-          </View>
-        )}
-        <Text style={styles.heroCategory}>{product.category} · {product.subcategory}</Text>
-        <Text style={styles.heroName}>{product.name}</Text>
-        <View style={styles.heroPriceRow}>
-          <Text style={styles.heroBestPrice}>{formatKES(product.bestPrice)}</Text>
-          <Text style={styles.heroPriceLabel}>best price</Text>
-          <View style={[styles.changeChip, isUp ? styles.changeUp : styles.changeDn]}>
-            <Text style={[styles.changeText, isUp ? styles.changeTextUp : styles.changeTextDn]}>
-              {isUp ? '▲' : '▼'} {Math.abs(product.priceChangePct).toFixed(1)}%
-            </Text>
-          </View>
+      <View style={styles.heroMeta}>
+        <View style={styles.metaIconRow}>
+          <StorefrontIcon size={12} color="rgba(255,255,255,0.45)" />
+          <Text style={styles.metaItem}>{product.vendorCount} vendors</Text>
         </View>
-        <View style={styles.heroMeta}>
-          <View style={styles.metaIconRow}>
-            <StorefrontIcon size={12} color="rgba(255,255,255,0.45)" />
-            <Text style={styles.metaItem}>{product.vendorCount} vendors</Text>
-          </View>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.metaItem}>Avg {formatKES(product.avgPrice)}</Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.metaItem}>{product.unit}</Text>
-        </View>
+        <Text style={styles.metaDot}>·</Text>
+        <Text style={styles.metaItem}>Avg {formatKES(product.avgPrice)}</Text>
+        <Text style={styles.metaDot}>·</Text>
+        <Text style={styles.metaItem}>{product.unit}</Text>
       </View>
+    </>
+  );
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Price trend */}
+  const mainSections = (
+    <>
+      {/* Price trend */}
         {trend && trend.dataPoints.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>30-day price trend</Text>
@@ -301,9 +286,57 @@ export default function ProductDetailScreen() {
             </Text>
           </Pressable>
         </View>
+    </>
+  );
 
-        <View style={{ height: insets.bottom + 24 }} />
-      </ScrollView>
+  return (
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Head>
+        <title>{product.name} — {formatKES(product.bestPrice)} — SokoPrice</title>
+        <meta name="description" content={`Compare prices for ${product.name} across ${product.vendorCount} vendors in Nairobi. Best price: ${formatKES(product.bestPrice)}.`} />
+      </Head>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeftIcon size={20} color={colors.white} />
+        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={handleWatchlist} style={styles.iconBtn}>
+            <HeartIcon
+              size={20}
+              color={watchlisted ? colors.red[400] : colors.white}
+              weight={watchlisted ? 'fill' : 'duotone'}
+            />
+          </Pressable>
+          <Pressable onPress={() => {}} style={styles.iconBtn}>
+            <ShareNetworkIcon size={20} color={colors.white} />
+          </Pressable>
+        </View>
+      </View>
+
+      {isDesktop ? (
+        <ResponsiveContainer>
+          <View style={styles.desktopRow}>
+            <View style={styles.desktopHeroPane}>{heroContent}</View>
+            <ScrollView
+              style={styles.desktopContentPane}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {mainSections}
+              <View style={{ height: insets.bottom + 24 }} />
+            </ScrollView>
+          </View>
+        </ResponsiveContainer>
+      ) : (
+        <>
+          <View style={styles.productHero}>{heroContent}</View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            {mainSections}
+            <View style={{ height: insets.bottom + 24 }} />
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }
@@ -413,6 +446,26 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 20,
     paddingHorizontal: 20,
+  },
+  desktopRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 24,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  desktopHeroPane: {
+    width: 380,
+    flexShrink: 0,
+    backgroundColor: colors.navy[800],
+    borderRadius: radii.xl,
+    padding: 24,
+    position: 'sticky' as any,
+    top: 24,
+  },
+  desktopContentPane: {
+    flex: 1,
   },
   section: {
     marginBottom: 20,

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon, UserIcon, BuildingsIcon, PhoneIcon, EnvelopeSimpleIcon, LockIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
@@ -42,6 +43,10 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.screen, { paddingTop: insets.top }]}
     >
+      <Head>
+        <title>Create Account — SokoPrice</title>
+        <meta name="description" content="Create a free SokoPrice account to start comparing vendor prices in Nairobi." />
+      </Head>
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"

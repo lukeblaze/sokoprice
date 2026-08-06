@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router, useLocalSearchParams } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SlidersHorizontalIcon, MagnifyingGlassIcon, XCircleIcon } from 'phosphor-react-native';
 import { useVendors, useVendorSearch } from '@/hooks/useQueries';
@@ -15,9 +16,13 @@ import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorCard } from '@/components/vendors/VendorCard';
 import { LoadingSpinner, EmptyState } from '@/components/common';
+import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
+import { useBreakpoint } from '@/hooks/useResponsive';
 
 export default function VendorsScreen() {
   const insets = useSafeAreaInsets();
+  const { isDesktop, isTablet } = useBreakpoint();
+  const numColumns = isDesktop ? 3 : isTablet ? 2 : 1;
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isSavedMode = mode === 'saved';
   const [query, setQuery] = useState('');
@@ -32,6 +37,10 @@ export default function VendorsScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Head>
+        <title>{isSavedMode ? 'Saved Vendors' : 'Vendors'} — SokoPrice</title>
+        <meta name="description" content={isSavedMode ? 'Your saved and favorited vendors.' : 'Browse verified vendors in the Nairobi market.'} />
+      </Head>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -83,23 +92,29 @@ export default function VendorsScreen() {
           />
         )
       ) : (
-        <FlatList
-          data={vendors}
-          keyExtractor={item => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={
-            <Text style={styles.count}>
-              {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} {isSavedMode ? 'saved' : 'in Nairobi'}
-            </Text>
-          }
-          renderItem={({ item }) => (
-            <VendorCard
-              vendor={item}
-              onPress={() => router.push(`/vendor/${item.id}`)}
-            />
-          )}
-        />
+        <ResponsiveContainer>
+          <FlatList
+            key={numColumns}
+            data={vendors}
+            keyExtractor={item => item.id}
+            numColumns={numColumns}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.list}
+            columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
+            ListHeaderComponent={
+              <Text style={styles.count}>
+                {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} {isSavedMode ? 'saved' : 'in Nairobi'}
+              </Text>
+            }
+            renderItem={({ item }) => (
+              <VendorCard
+                vendor={item}
+                style={numColumns > 1 ? styles.gridCard : undefined}
+                onPress={() => router.push(`/vendor/${item.id}`)}
+              />
+            )}
+          />
+        </ResponsiveContainer>
       )}
     </View>
   );
@@ -163,5 +178,14 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     paddingHorizontal: 20,
     marginBottom: 10,
+  },
+  gridRow: {
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  gridCard: {
+    flex: 1,
+    marginHorizontal: 0,
+    marginBottom: 16,
   },
 });

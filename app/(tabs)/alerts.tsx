@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   TrendDownIcon,
@@ -70,6 +71,10 @@ export default function AlertsScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Head>
+        <title>Price Alerts & Notifications — SokoPrice</title>
+        <meta name="description" content="Manage your price drop alerts and notifications for tracked products." />
+      </Head>
       <View style={styles.header}>
         <Text style={styles.title}>Alerts</Text>
         {unreadCount > 0 && (

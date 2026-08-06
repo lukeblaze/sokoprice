@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router, useLocalSearchParams } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MagnifyingGlassIcon, XCircleIcon, ClockIcon, ArrowBendUpLeftIcon } from 'phosphor-react-native';
 import { useProductSearch, useProducts } from '@/hooks/useQueries';
@@ -16,6 +17,8 @@ import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { ProductCard } from '@/components/home/ProductCard';
 import { LoadingSpinner, EmptyState } from '@/components/common';
+import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
+import { useBreakpoint } from '@/hooks/useResponsive';
 import type { ProductCategory } from '@/types';
 
 const CATEGORIES: Array<ProductCategory | 'All'> = [
@@ -30,6 +33,8 @@ const CATEGORIES: Array<ProductCategory | 'All'> = [
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
+  const { isDesktop, isTablet } = useBreakpoint();
+  const numColumns = isDesktop ? 4 : isTablet ? 3 : 1;
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isWatchlistMode = mode === 'watchlist';
   const [query, setQuery] = useState('');
@@ -71,6 +76,10 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Head>
+        <title>{isWatchlistMode ? 'Your Watchlist' : 'Search Prices'} — SokoPrice</title>
+        <meta name="description" content={isWatchlistMode ? 'Products you are tracking for price drops.' : 'Search and compare product prices across Nairobi vendors.'} />
+      </Head>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>{isWatchlistMode ? 'Watchlist' : 'Find prices'}</Text>
@@ -107,7 +116,11 @@ export default function SearchScreen() {
           <Pressable
             key={cat}
             onPress={() => handleCategoryPress(cat)}
-            style={[styles.chip, activeCategory === cat && styles.chipActive]}
+            style={({ hovered, focused }) => [
+              styles.chip,
+              activeCategory === cat && styles.chipActive,
+              (hovered || focused) && activeCategory !== cat && styles.chipHovered,
+            ]}
           >
             <Text style={[styles.chipText, activeCategory === cat && styles.chipTextActive]}>
               {cat}
@@ -176,28 +189,33 @@ export default function SearchScreen() {
           />
         )
       ) : (
-        <FlatList
-          data={results}
-          keyExtractor={item => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
-          ListHeaderComponent={
-            <Text style={styles.resultCount}>
-              {results.length} {results.length === 1 ? 'product' : 'products'}
-              {activeCategory !== 'All' ? ` in ${activeCategory}` : ''}
-            </Text>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.resultItem}>
-              <ProductCard
-                product={item}
-                variant="horizontal"
-                onPress={() => handleProductPress(item.id, item.name)}
-              />
-            </View>
-          )}
-        />
+        <ResponsiveContainer>
+          <FlatList
+            key={numColumns}
+            data={results}
+            keyExtractor={item => item.id}
+            numColumns={numColumns}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
+            ListHeaderComponent={
+              <Text style={styles.resultCount}>
+                {results.length} {results.length === 1 ? 'product' : 'products'}
+                {activeCategory !== 'All' ? ` in ${activeCategory}` : ''}
+              </Text>
+            }
+            renderItem={({ item }) => (
+              <View style={numColumns > 1 ? styles.gridItem : styles.resultItem}>
+                <ProductCard
+                  product={item}
+                  variant={numColumns > 1 ? 'vertical' : 'horizontal'}
+                  style={numColumns > 1 ? styles.gridCard : undefined}
+                  onPress={() => handleProductPress(item.id, item.name)}
+                />
+              </View>
+            )}
+          />
+        </ResponsiveContainer>
       )}
     </View>
   );
@@ -261,6 +279,10 @@ const styles = StyleSheet.create({
   chipActive: {
     backgroundColor: colors.navy[800],
     borderColor: colors.navy[800],
+  },
+  chipHovered: {
+    borderColor: colors.amber[400],
+    backgroundColor: colors.amber[50],
   },
   chipText: {
     fontSize: typography.sizes.sm,
@@ -346,5 +368,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopWidth: 0.5,
     borderTopColor: colors.gray[100],
+  },
+  gridRow: {
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  gridItem: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  gridCard: {
+    width: '100%',
   },
 });

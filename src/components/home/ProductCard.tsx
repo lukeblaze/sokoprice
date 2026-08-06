@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, StyleSheet, Image } from 'react-native';
+import { View, Pressable, StyleSheet, Image, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '@/components/common/Text';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { colors, radii, shadows, typography } from '@/theme/tokens';
@@ -11,6 +11,7 @@ interface Props {
   product: Product;
   onPress: () => void;
   variant?: 'horizontal' | 'vertical';
+  style?: StyleProp<ViewStyle>;
 }
 
 function ProductThumb({ product, wrapStyle, iconSize }: {
@@ -37,19 +38,29 @@ function ProductThumb({ product, wrapStyle, iconSize }: {
   );
 }
 
-export function ProductCard({ product, onPress, variant = 'vertical' }: Props) {
+export function ProductCard({ product, onPress, variant = 'vertical', style }: Props) {
   const scale = useSharedValue(1);
+  const [hovered, setHovered] = useState(false);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   return (
-    <Animated.View style={[variant === 'vertical' ? styles.cardVertical : styles.cardHorizontal, animStyle]}>
+    <Animated.View
+      style={[
+        variant === 'vertical' ? styles.cardVertical : styles.cardHorizontal,
+        hovered && styles.cardHovered,
+        animStyle,
+        style,
+      ]}
+    >
       <Pressable
         onPress={onPress}
         onPressIn={() => { scale.value = withSpring(0.97, { damping: 15 }); }}
         onPressOut={() => { scale.value = withSpring(1, { damping: 15 }); }}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
         style={styles.inner}
       >
         {variant === 'vertical' ? (
@@ -93,6 +104,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: 0.5,
     borderColor: colors.gray[100],
+  },
+  cardHovered: {
+    borderColor: colors.amber[400],
+    ...shadows.md,
   },
   inner: {
     padding: 14,

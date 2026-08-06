@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
+import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EnvelopeSimpleIcon, LockIcon, EyeIcon, EyeSlashIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
@@ -37,6 +38,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.screen, { paddingTop: insets.top }]}
     >
+      <Head>
+        <title>Sign In — SokoPrice</title>
+        <meta name="description" content="Sign in to SokoPrice to track prices and manage your vendor watchlist." />
+      </Head>
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"

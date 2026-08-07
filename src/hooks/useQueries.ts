@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productsApi, vendorsApi, marketApi } from '@/api';
+import { productsApi, vendorsApi, marketApi, type VendorInput } from '@/api';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -92,6 +92,37 @@ export function useVendorSearch(query: string) {
     queryKey: queryKeys.vendors.search(query),
     queryFn: () => vendorsApi.search(query),
     staleTime: 1000 * 30,
+  });
+}
+
+export function useCreateVendor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: VendorInput) => vendorsApi.create(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendors.all() });
+    },
+  });
+}
+
+export function useUpdateVendor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<VendorInput> }) => vendorsApi.update(id, patch),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendors.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendors.detail(variables.id) });
+    },
+  });
+}
+
+export function useDeleteVendor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => vendorsApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.vendors.all() });
+    },
   });
 }
 

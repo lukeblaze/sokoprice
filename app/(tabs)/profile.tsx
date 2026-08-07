@@ -270,6 +270,16 @@ export default function ProfileScreen() {
           <SettingsRow
             dyn={dyn}
             t={t}
+            icon={StorefrontIcon}
+            label="Manage vendors"
+            iconBg={colors.navy[50]}
+            iconColor={colors.navy[600]}
+            onPress={() => router.push('/admin')}
+          />
+          <View style={[styles.divider, dyn.divider]} />
+          <SettingsRow
+            dyn={dyn}
+            t={t}
             icon={BuildingsIcon}
             label="Business details"
             iconBg={colors.navy[50]}

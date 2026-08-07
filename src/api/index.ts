@@ -9,6 +9,26 @@ import {
 } from '@/utils/mockData';
 import type { Product, Vendor, VendorListing, PriceTrend, MarketSummary, TickerItem } from '@/types';
 
+// Fields an admin fills in when adding/editing a vendor — the rest
+// (id, initials, rating, reviewCount, productCount, joinedDate) are
+// derived or start at zero for a brand-new listing.
+export interface VendorInput {
+  name: string;
+  category: string;
+  description?: string;
+  location?: string;
+  area?: string;
+  badge?: Vendor['badge'];
+  phone?: string;
+  email?: string;
+  whatsapp?: string;
+  website?: string;
+  openingHours?: string;
+  isVerified?: boolean;
+  colorHex?: string;
+  logoUrl?: string;
+}
+
 // ─── Axios instance ───────────────────────────────────────────────────────────
 // Replace BASE_URL with your Django backend URL when ready
 
@@ -108,7 +128,10 @@ export const productsApi = {
 export const vendorsApi = {
   getAll: async (): Promise<Vendor[]> => {
     await delay(400);
-    return MOCK_VENDORS;
+    // Fresh array reference each call — MOCK_VENDORS is mutated in place
+    // by create/update/remove, and react-query's structural sharing
+    // would otherwise treat the unchanged reference as "no new data".
+    return [...MOCK_VENDORS];
   },
 
   getById: async (id: string): Promise<Vendor> => {
@@ -120,13 +143,60 @@ export const vendorsApi = {
 
   search: async (query: string): Promise<Vendor[]> => {
     await delay(300);
-    if (!query.trim()) return MOCK_VENDORS;
+    if (!query.trim()) return [...MOCK_VENDORS];
     const q = query.toLowerCase();
     return MOCK_VENDORS.filter(v =>
       v.name.toLowerCase().includes(q) ||
       v.category.toLowerCase().includes(q) ||
       v.area.toLowerCase().includes(q)
     );
+  },
+
+  create: async (input: VendorInput): Promise<Vendor> => {
+    await delay(400);
+    const slug = input.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'vendor';
+    const id = `${slug}-${Date.now().toString(36).slice(-5)}`;
+    const initials = input.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'V';
+    const vendor: Vendor = {
+      id,
+      name: input.name,
+      initials,
+      category: input.category,
+      description: input.description ?? '',
+      location: input.location ?? '',
+      area: input.area ?? '',
+      rating: 0,
+      reviewCount: 0,
+      badge: input.badge ?? 'New',
+      productCount: 0,
+      phone: input.phone,
+      email: input.email,
+      whatsapp: input.whatsapp,
+      website: input.website,
+      openingHours: input.openingHours ?? '',
+      isVerified: input.isVerified ?? false,
+      isFavorited: false,
+      colorHex: input.colorHex ?? '#1a3a5c',
+      logoUrl: input.logoUrl,
+      joinedDate: new Date().toISOString().split('T')[0],
+    };
+    MOCK_VENDORS.unshift(vendor);
+    return vendor;
+  },
+
+  update: async (id: string, patch: Partial<VendorInput>): Promise<Vendor> => {
+    await delay(350);
+    const idx = MOCK_VENDORS.findIndex(v => v.id === id);
+    if (idx === -1) throw new Error('Vendor not found');
+    MOCK_VENDORS[idx] = { ...MOCK_VENDORS[idx], ...patch };
+    return MOCK_VENDORS[idx];
+  },
+
+  remove: async (id: string): Promise<void> => {
+    await delay(300);
+    const idx = MOCK_VENDORS.findIndex(v => v.id === id);
+    if (idx === -1) throw new Error('Vendor not found');
+    MOCK_VENDORS.splice(idx, 1);
   },
 };
 

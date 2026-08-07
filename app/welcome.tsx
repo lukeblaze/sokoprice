@@ -193,6 +193,7 @@ function SlideFigure({
 export default function WelcomeScreen() {
   const { width } = useWindowDimensions();
   const isMobile = width < 640;
+  const isWeb = Platform.OS === 'web';
   const [activeIndex, setActiveIndex] = useState(0);
   const isAnimating = useRef(false);
   const completeOnboarding = useAppStore(s => s.completeOnboarding);
@@ -223,18 +224,57 @@ export default function WelcomeScreen() {
   };
 
   const slide = SLIDES[activeIndex];
-  const scrimColor = t.isDark ? 'rgba(4,10,24,0.6)' : 'rgba(249,250,251,0.92)';
-  const ghostColor = t.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.07)';
+
+  // With a video background on web, legibility depends on the dark
+  // scrim over it, not the app's light/dark toggle — so text stays a
+  // fixed light palette there. Native has no video (see below), so it
+  // keeps following the app theme like the rest of the site.
+  const textPrimary = isWeb ? colors.white : t.textPrimary;
+  const textSecondary = isWeb ? 'rgba(255,255,255,0.85)' : t.textSecondary;
+  const hairlineBorder = isWeb ? 'rgba(255,255,255,0.3)' : t.border;
+  const dotColor = isWeb ? 'rgba(255,255,255,0.35)' : t.border;
+  const ghostColor = isWeb ? 'rgba(255,255,255,0.16)' : (t.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.07)');
+  const bottomScrimColor = isWeb ? 'rgba(4,9,20,0.68)' : (t.isDark ? 'rgba(4,10,24,0.6)' : 'rgba(249,250,251,0.92)');
+  const screenBg = isWeb ? colors.navy[800] : t.bg;
   const bgTransition = Platform.OS === 'web'
     ? ({ transition: `background-color ${TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)` } as any)
     : {};
 
   return (
-    <View style={[styles.screen, { backgroundColor: t.bg }, bgTransition]}>
+    <View style={[styles.screen, { backgroundColor: screenBg }, bgTransition]}>
       <Head>
         <title>SokoPrice — Compare vendor prices in Nairobi</title>
         <meta name="description" content="The fastest way to compare prices across Nairobi vendors, track trends, and never overpay again." />
       </Head>
+
+      {/* Background video — vendors and shoppers using the platform.
+          Web only: RN has no intrinsic <video> element, and native
+          keeps the flat theme-colored background below instead. */}
+      {isWeb && React.createElement('video', {
+        autoPlay: true,
+        muted: true,
+        loop: true,
+        playsInline: true,
+        src: '/welcome-bg.mp4',
+        style: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0,
+        },
+      })}
+
+      {/* Scrim over the video so foreground text stays legible */}
+      {isWeb && (
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(4,9,20,0.45)', 'rgba(4,9,20,0.6)']}
+          style={styles.videoScrim}
+        />
+      )}
 
       {/* Grain texture */}
       {Platform.OS === 'web' && (
@@ -242,7 +282,7 @@ export default function WelcomeScreen() {
           pointerEvents="none"
           style={[
             styles.grain,
-            { backgroundImage: `url("${GRAIN_DATA_URI}")`, backgroundSize: '200px 200px', opacity: t.isDark ? 0.4 : 0.18 } as any,
+            { backgroundImage: `url("${GRAIN_DATA_URI}")`, backgroundSize: '200px 200px', opacity: isWeb ? 0.15 : (t.isDark ? 0.4 : 0.18) } as any,
           ]}
         />
       )}
@@ -264,11 +304,11 @@ export default function WelcomeScreen() {
       </View>
 
       {/* Top-left brand label */}
-      <Text style={[styles.brandLabel, { color: t.textPrimary }]}>SOKOPRICE</Text>
+      <Text style={[styles.brandLabel, { color: textPrimary }]}>SOKOPRICE</Text>
 
       {/* Top-right sign-in link */}
-      <Pressable onPress={() => { completeOnboarding(); router.push('/(auth)/login'); }} style={[styles.signInLink, { borderColor: t.border }]}>
-        <Text style={[styles.signInText, { color: t.textPrimary }]}>Sign in</Text>
+      <Pressable onPress={() => { completeOnboarding(); router.push('/(auth)/login'); }} style={[styles.signInLink, { borderColor: hairlineBorder }]}>
+        <Text style={[styles.signInText, { color: textPrimary }]}>Sign in</Text>
       </Pressable>
 
       {/* Carousel — auto-looping, no manual nav */}
@@ -281,7 +321,7 @@ export default function WelcomeScreen() {
       {/* Bottom gradient scrim for text legibility */}
       <LinearGradient
         pointerEvents="none"
-        colors={['transparent', scrimColor]}
+        colors={['transparent', bottomScrimColor]}
         style={styles.bottomScrim}
       />
 
@@ -289,19 +329,19 @@ export default function WelcomeScreen() {
       <View style={styles.bottomLeft}>
         <View style={styles.dotsRow}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={[styles.dot, { backgroundColor: t.border }, i === activeIndex && styles.dotActive]} />
+            <View key={i} style={[styles.dot, { backgroundColor: dotColor }, i === activeIndex && styles.dotActive]} />
           ))}
         </View>
-        <Text style={[styles.slideTitle, { color: t.textPrimary }]}>{slide.title.toUpperCase()}</Text>
-        {!isMobile && <Text style={[styles.slideCaption, { color: t.textSecondary }]}>{slide.caption}</Text>}
+        <Text style={[styles.slideTitle, { color: textPrimary }]}>{slide.title.toUpperCase()}</Text>
+        {!isMobile && <Text style={[styles.slideCaption, { color: textSecondary }]}>{slide.caption}</Text>}
       </View>
 
       {/* Bottom-right CTA */}
       <Pressable onPress={() => { completeOnboarding(); router.push('/(auth)/register'); }} style={styles.ctaWrap}>
         {({ hovered }) => (
           <>
-            <Text style={[styles.ctaText, { color: t.textPrimary }, hovered && { opacity: 1 }]}>Get started</Text>
-            <ArrowRightIcon size={22} color={t.textPrimary} weight="bold" />
+            <Text style={[styles.ctaText, { color: textPrimary }, hovered && { opacity: 1 }]}>Get started</Text>
+            <ArrowRightIcon size={22} color={textPrimary} weight="bold" />
           </>
         )}
       </Pressable>
@@ -315,6 +355,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     ...(Platform.OS === 'web' ? ({ height: '100vh', minHeight: '100vh' } as any) : {}),
+  },
+  videoScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
   },
   grain: {
     position: 'absolute',

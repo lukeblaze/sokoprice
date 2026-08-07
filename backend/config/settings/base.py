@@ -122,3 +122,21 @@ SIMPLE_JWT = {
 # Africa's Talking SMS (Phase 6) — unset until real credentials exist.
 AFRICASTALKING_USERNAME = env('AFRICASTALKING_USERNAME', default='')
 AFRICASTALKING_API_KEY = env('AFRICASTALKING_API_KEY', default='')
+
+# Print request-handling exceptions to stdout — Render's Logs tab is the
+# only way to see a traceback in prod (DEBUG=False, no email backend
+# configured for the default AdminEmailHandler).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}

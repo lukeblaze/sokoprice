@@ -22,14 +22,19 @@ export default function LoginScreen() {
   const signIn = useAppStore(s => s.signIn);
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
-    form: { backgroundColor: t.surface },
+    screen: { backgroundColor: t.bg },
+    appName: { color: t.textPrimary },
+    tagline: { color: t.textSecondary },
+    form: { backgroundColor: t.surface, borderColor: t.border },
     formTitle: { color: t.textPrimary },
     fieldLabel: { color: t.textPrimary },
     inputWrap: { backgroundColor: t.surfaceAlt, borderColor: t.border },
     input: { color: t.textPrimary },
     dividerLine: { backgroundColor: t.border },
+    dividerText: { color: t.textMuted },
     registerBtn: { borderColor: t.border },
     registerBtnText: { color: t.textPrimary },
+    skipText: { color: t.textMuted },
   }), [t]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,7 +53,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.screen, { paddingTop: insets.top }]}
+      style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}
     >
       <Head>
         <title>Sign In — SokoPrice</title>
@@ -59,13 +64,14 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+      <View style={styles.centerCol}>
         {/* Brand */}
         <View style={styles.brand}>
           <View style={styles.logoMark}>
             <Text style={styles.logoText}>SP</Text>
           </View>
-          <Text style={styles.appName}>SokoPrice</Text>
-          <Text style={styles.tagline}>Nairobi market prices, real time</Text>
+          <Text style={[styles.appName, dyn.appName]}>SokoPrice</Text>
+          <Text style={[styles.tagline, dyn.tagline]}>Nairobi market prices, real time</Text>
         </View>
 
         {/* Form */}
@@ -128,7 +134,7 @@ export default function LoginScreen() {
 
           <View style={styles.dividerRow}>
             <View style={[styles.dividerLine, dyn.dividerLine]} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={[styles.dividerText, dyn.dividerText]}>or</Text>
             <View style={[styles.dividerLine, dyn.dividerLine]} />
           </View>
 
@@ -139,8 +145,9 @@ export default function LoginScreen() {
 
         {/* Skip for demo */}
         <Pressable onPress={() => { signIn(); router.replace('/(tabs)'); }} style={styles.skipBtn}>
-          <Text style={styles.skipText}>Continue as guest →</Text>
+          <Text style={[styles.skipText, dyn.skipText]}>Continue as guest →</Text>
         </Pressable>
+      </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -153,69 +160,76 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
+    alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 32,
+  },
+  centerCol: {
+    width: '100%',
+    maxWidth: 380,
   },
   brand: {
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 48,
+    paddingTop: 44,
+    paddingBottom: 32,
   },
   logoMark: {
-    width: 64,
-    height: 64,
-    borderRadius: radii.xl,
+    width: 52,
+    height: 52,
+    borderRadius: radii.lg,
     backgroundColor: colors.amber[400],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   logoText: {
-    fontSize: 22,
+    fontSize: 18,
     fontFamily: typography.displayFont,
     color: colors.navy[800],
   },
   appName: {
-    fontSize: typography.sizes['3xl'],
+    fontSize: typography.sizes['2xl'],
     fontFamily: typography.displayFont,
     color: colors.white,
     letterSpacing: -0.5,
   },
   tagline: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: 'rgba(255,255,255,0.45)',
-    marginTop: 6,
+    marginTop: 4,
   },
   form: {
     backgroundColor: colors.white,
-    borderRadius: radii['2xl'],
-    padding: 24,
+    borderRadius: radii.xl,
+    borderWidth: 0.5,
+    borderColor: 'transparent',
+    padding: 20,
   },
   formTitle: {
-    fontSize: typography.sizes.xl,
+    fontSize: typography.sizes.lg,
     fontFamily: typography.displayFontMedium,
     color: colors.navy[800],
-    marginBottom: 24,
+    marginBottom: 18,
   },
   field: {
-    marginBottom: 16,
+    marginBottom: 13,
   },
   fieldLabel: {
     fontSize: typography.sizes.sm,
     fontWeight: '500',
     color: colors.navy[800],
-    marginBottom: 8,
+    marginBottom: 6,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
     backgroundColor: colors.gray[50],
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 0.5,
     borderColor: colors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   input: {
     flex: 1,
@@ -224,7 +238,7 @@ const styles = StyleSheet.create({
   },
   forgotWrap: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
+    marginBottom: 18,
   },
   forgot: {
     fontSize: typography.sizes.sm,
@@ -233,8 +247,8 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     backgroundColor: colors.navy[800],
-    borderRadius: radii.lg,
-    paddingVertical: 14,
+    borderRadius: radii.md,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   submitBtnLoading: {
@@ -248,8 +262,8 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginVertical: 20,
+    gap: 10,
+    marginVertical: 16,
   },
   dividerLine: {
     flex: 1,
@@ -263,8 +277,8 @@ const styles = StyleSheet.create({
   registerBtn: {
     borderWidth: 0.5,
     borderColor: colors.gray[200],
-    borderRadius: radii.lg,
-    paddingVertical: 14,
+    borderRadius: radii.md,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   registerBtnText: {

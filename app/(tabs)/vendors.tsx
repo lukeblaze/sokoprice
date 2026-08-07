@@ -28,6 +28,12 @@ export default function VendorsScreen() {
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
     count: { color: t.textSecondary },
+    header: { backgroundColor: t.surface, borderBottomColor: t.border, borderBottomWidth: t.isDark ? 0 : 0.5 },
+    subtitle: { color: t.textSecondary },
+    title: { color: t.textPrimary },
+    filterBtn: { backgroundColor: t.surfaceAlt },
+    searchWrap: { backgroundColor: t.surfaceAlt },
+    input: { color: t.textPrimary },
   }), [t]);
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isSavedMode = mode === 'saved';
@@ -48,32 +54,32 @@ export default function VendorsScreen() {
         <meta name="description" content={isSavedMode ? 'Your saved and favorited vendors.' : 'Browse verified vendors in the Nairobi market.'} />
       </Head>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, dyn.header]}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.subtitle}>{isSavedMode ? 'Your favorites' : 'Nairobi market'}</Text>
-            <Text style={styles.title}>{isSavedMode ? 'Saved vendors' : 'Vendors'}</Text>
+            <Text style={[styles.subtitle, dyn.subtitle]}>{isSavedMode ? 'Your favorites' : 'Nairobi market'}</Text>
+            <Text style={[styles.title, dyn.title]}>{isSavedMode ? 'Saved vendors' : 'Vendors'}</Text>
           </View>
           {!isSavedMode && (
-          <Pressable style={styles.filterBtn}>
-            <SlidersHorizontalIcon size={18} color={colors.white} />
+          <Pressable style={[styles.filterBtn, dyn.filterBtn]}>
+            <SlidersHorizontalIcon size={18} color={t.textPrimary} />
           </Pressable>
           )}
         </View>
         {!isSavedMode && (
-        <View style={styles.searchWrap}>
-          <MagnifyingGlassIcon size={16} color="rgba(255,255,255,0.45)" />
+        <View style={[styles.searchWrap, dyn.searchWrap]}>
+          <MagnifyingGlassIcon size={16} color={t.textMuted} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, dyn.input]}
             placeholder="Search vendors, categories…"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor={t.textMuted}
             value={query}
             onChangeText={setQuery}
             autoCapitalize="words"
           />
           {query.length > 0 && (
             <Pressable onPress={() => setQuery('')}>
-              <XCircleIcon size={18} color="rgba(255,255,255,0.45)" />
+              <XCircleIcon size={18} color={t.textMuted} />
             </Pressable>
           )}
         </View>

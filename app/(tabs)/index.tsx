@@ -30,6 +30,12 @@ export default function HomeScreen() {
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
+    header: { backgroundColor: t.surface, borderBottomColor: t.border, borderBottomWidth: t.isDark ? 0 : 0.5 },
+    greeting: { color: t.textSecondary },
+    appName: { color: t.textPrimary },
+    iconBtn: { backgroundColor: t.surfaceAlt },
+    searchBar: { backgroundColor: t.surfaceAlt },
+    searchPlaceholder: { color: t.textMuted },
     statCard: { backgroundColor: t.surface, borderColor: t.border },
     statLabel: { color: t.textSecondary },
     statValue: { color: t.textPrimary },
@@ -70,18 +76,18 @@ export default function HomeScreen() {
         <meta name="description" content="Track and compare product prices across Nairobi vendors in real time. IT, office supplies, and more." />
       </Head>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, dyn.header]}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.greeting}>Good morning</Text>
-            <Text style={styles.appName}>SokoPrice</Text>
+            <Text style={[styles.greeting, dyn.greeting]}>Good morning</Text>
+            <Text style={[styles.appName, dyn.appName]}>SokoPrice</Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable
               onPress={() => router.push('/(tabs)/alerts')}
-              style={styles.notifBtn}
+              style={[styles.notifBtn, dyn.iconBtn]}
             >
-              <BellIcon size={22} color={colors.white} />
+              <BellIcon size={22} color={t.textPrimary} />
               {unreadCount > 0 && (
                 <View style={styles.notifDot}>
                   <Text style={styles.notifDotText}>{unreadCount}</Text>
@@ -102,10 +108,10 @@ export default function HomeScreen() {
         {/* Search bar shortcut */}
         <Pressable
           onPress={() => router.push('/(tabs)/search')}
-          style={styles.searchBar}
+          style={[styles.searchBar, dyn.searchBar]}
         >
-          <MagnifyingGlassIcon size={16} color="rgba(255,255,255,0.5)" />
-          <Text style={styles.searchPlaceholder}>Search products, vendors…</Text>
+          <MagnifyingGlassIcon size={16} color={t.textMuted} />
+          <Text style={[styles.searchPlaceholder, dyn.searchPlaceholder]}>Search products, vendors…</Text>
         </Pressable>
       </View>
 

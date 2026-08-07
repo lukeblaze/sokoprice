@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { useBreakpoint } from '@/hooks/useResponsive';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { TAB_ROUTE_ICONS } from '@/components/navigation/tabConfig';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 
@@ -19,11 +20,12 @@ function TabIcon({
   badge?: number;
 }) {
   const IconCmp = TAB_ROUTE_ICONS[route];
+  const t = useThemeColors();
   return (
     <View style={styles.iconWrap}>
       <IconCmp
         size={24}
-        color={focused ? colors.navy[800] : colors.gray[400]}
+        color={focused ? colors.amber[400] : t.textMuted}
         weight={focused ? 'fill' : 'duotone'}
       />
       {badge !== undefined && badge > 0 && (
@@ -39,6 +41,7 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const unreadCount = useAppStore(s => s.unreadCount);
   const { isDesktop } = useBreakpoint();
+  const t = useThemeColors();
 
   return (
     <Tabs
@@ -47,9 +50,9 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarPosition: isDesktop ? 'left' : 'bottom',
         tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopWidth: 0.5,
-          borderTopColor: colors.gray[200],
+          backgroundColor: t.surface,
+          borderTopWidth: t.isDark ? 0 : 0.5,
+          borderTopColor: t.border,
           height: 56 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 8,
@@ -59,8 +62,8 @@ export default function TabsLayout() {
           fontWeight: '500',
           marginTop: 2,
         },
-        tabBarActiveTintColor: colors.navy[800],
-        tabBarInactiveTintColor: colors.gray[400],
+        tabBarActiveTintColor: colors.amber[500],
+        tabBarInactiveTintColor: t.textMuted,
       }}
     >
       <Tabs.Screen

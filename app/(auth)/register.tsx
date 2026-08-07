@@ -22,10 +22,14 @@ export default function RegisterScreen() {
   const signIn = useAppStore(s => s.signIn);
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
-    form: { backgroundColor: t.surface },
+    screen: { backgroundColor: t.bg },
+    title: { color: t.textPrimary },
+    subtitle: { color: t.textSecondary },
+    form: { backgroundColor: t.surface, borderColor: t.border },
     fieldLabel: { color: t.textPrimary },
     inputWrap: { backgroundColor: t.surfaceAlt, borderColor: t.border },
     input: { color: t.textPrimary },
+    back: { backgroundColor: t.surfaceAlt },
   }), [t]);
   const [form, setForm] = useState({
     name: '',
@@ -49,7 +53,7 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.screen, { paddingTop: insets.top }]}
+      style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}
     >
       <Head>
         <title>Create Account — SokoPrice</title>
@@ -60,15 +64,16 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+      <View style={styles.centerCol}>
         {/* Back */}
-        <Pressable onPress={() => router.back()} style={styles.back}>
-          <ArrowLeftIcon size={20} color={colors.white} />
+        <Pressable onPress={() => router.back()} style={[styles.back, dyn.back]}>
+          <ArrowLeftIcon size={20} color={t.textPrimary} />
         </Pressable>
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Create account</Text>
-          <Text style={styles.subtitle}>Start tracking Nairobi market prices</Text>
+          <Text style={[styles.title, dyn.title]}>Create account</Text>
+          <Text style={[styles.subtitle, dyn.subtitle]}>Start tracking Nairobi market prices</Text>
         </View>
 
         {/* Form */}
@@ -112,6 +117,7 @@ export default function RegisterScreen() {
             <Text style={styles.signInLinkText}>Already have an account? Sign in</Text>
           </Pressable>
         </View>
+      </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -124,56 +130,62 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
+    alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 32,
+  },
+  centerCol: {
+    width: '100%',
+    maxWidth: 380,
   },
   back: {
     width: 36,
     height: 36,
     borderRadius: radii.full,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   header: {
-    marginBottom: 28,
+    marginBottom: 22,
   },
   title: {
-    fontSize: typography.sizes['3xl'],
+    fontSize: typography.sizes['2xl'],
     fontFamily: typography.displayFont,
     color: colors.white,
   },
   subtitle: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: 'rgba(255,255,255,0.45)',
-    marginTop: 6,
+    marginTop: 4,
   },
   form: {
     backgroundColor: colors.white,
-    borderRadius: radii['2xl'],
-    padding: 24,
+    borderRadius: radii.xl,
+    borderWidth: 0.5,
+    borderColor: 'transparent',
+    padding: 20,
   },
   field: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   fieldLabel: {
     fontSize: typography.sizes.sm,
     fontWeight: '500',
     color: colors.navy[800],
-    marginBottom: 7,
+    marginBottom: 6,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
     backgroundColor: colors.gray[50],
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 0.5,
     borderColor: colors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   input: {
     flex: 1,
@@ -182,10 +194,10 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     backgroundColor: colors.navy[800],
-    borderRadius: radii.lg,
-    paddingVertical: 14,
+    borderRadius: radii.md,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   submitBtnText: {
     fontSize: typography.sizes.base,

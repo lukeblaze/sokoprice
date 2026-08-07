@@ -88,6 +88,13 @@ export default function VendorDetailScreen() {
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
+    header: { backgroundColor: t.surface, borderBottomColor: t.border, borderBottomWidth: t.isDark ? 0 : 0.5 },
+    iconBtn: { backgroundColor: t.surfaceAlt },
+    hero: { backgroundColor: t.surface },
+    heroName: { color: t.textPrimary },
+    heroCategory: { color: t.textSecondary },
+    heroRating: { color: t.textPrimary },
+    heroReviews: { color: t.textMuted },
     statsRow: { backgroundColor: t.surface, borderColor: t.border },
     statCellBorder: { borderColor: t.border },
     statValue: { color: t.textPrimary },
@@ -116,8 +123,8 @@ export default function VendorDetailScreen() {
   if (isLoading || !vendor) {
     return (
       <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeftIcon size={22} color={colors.white} />
+        <Pressable onPress={() => router.back()} style={[styles.backBtn, dyn.iconBtn]}>
+          <ArrowLeftIcon size={22} color={t.textPrimary} />
         </Pressable>
         <LoadingSpinner />
       </View>
@@ -129,16 +136,16 @@ export default function VendorDetailScreen() {
       <VendorAvatar initials={vendor.initials} colorHex={vendor.colorHex} size={64} logoUrl={vendor.logoUrl} />
       <View style={styles.heroInfo}>
         <View style={styles.heroNameRow}>
-          <Text style={styles.heroName}>{vendor.name}</Text>
+          <Text style={[styles.heroName, dyn.heroName]}>{vendor.name}</Text>
           {vendor.isVerified && (
             <CheckCircleIcon size={18} color={colors.green[400]} weight="fill" />
           )}
         </View>
-        <Text style={styles.heroCategory}>{vendor.category}</Text>
+        <Text style={[styles.heroCategory, dyn.heroCategory]}>{vendor.category}</Text>
         <View style={styles.heroMeta}>
           <StarIcon size={13} color={colors.amber[400]} weight="fill" />
-          <Text style={styles.heroRating}>{vendor.rating.toFixed(1)}</Text>
-          <Text style={styles.heroReviews}>({vendor.reviewCount} reviews)</Text>
+          <Text style={[styles.heroRating, dyn.heroRating]}>{vendor.rating.toFixed(1)}</Text>
+          <Text style={[styles.heroReviews, dyn.heroReviews]}>({vendor.reviewCount} reviews)</Text>
           <VendorBadgeChip badge={vendor.badge} />
         </View>
       </View>
@@ -270,14 +277,14 @@ export default function VendorDetailScreen() {
         <meta name="description" content={`${vendor.name} in ${vendor.location}. ${vendor.productCount} products, ${vendor.rating.toFixed(1)} rating from ${vendor.reviewCount} reviews.`} />
       </Head>
       {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeftIcon size={20} color={colors.white} />
+      <View style={[styles.header, dyn.header]}>
+        <Pressable onPress={() => router.back()} style={[styles.backBtn, dyn.iconBtn]}>
+          <ArrowLeftIcon size={20} color={t.textPrimary} />
         </Pressable>
-        <Pressable onPress={handleSave} style={styles.saveBtn}>
+        <Pressable onPress={handleSave} style={[styles.saveBtn, dyn.iconBtn]}>
           <BookmarkSimpleIcon
             size={20}
-            color={isSaved ? colors.amber[400] : colors.white}
+            color={isSaved ? colors.amber[400] : t.textPrimary}
             weight={isSaved ? 'fill' : 'duotone'}
           />
         </Pressable>
@@ -286,7 +293,7 @@ export default function VendorDetailScreen() {
       {isDesktop ? (
         <ResponsiveContainer>
           <View style={styles.desktopRow}>
-            <View style={styles.desktopHeroPane}>{heroContent}</View>
+            <View style={[styles.desktopHeroPane, dyn.hero]}>{heroContent}</View>
             <ScrollView
               style={styles.desktopContentPane}
               showsVerticalScrollIndicator={false}
@@ -299,7 +306,7 @@ export default function VendorDetailScreen() {
         </ResponsiveContainer>
       ) : (
         <>
-          <View style={styles.vendorHero}>{heroContent}</View>
+          <View style={[styles.vendorHero, dyn.hero]}>{heroContent}</View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {mainSections}
             <View style={{ height: insets.bottom + 24 }} />

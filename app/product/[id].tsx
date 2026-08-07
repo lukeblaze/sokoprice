@@ -89,6 +89,15 @@ export default function ProductDetailScreen() {
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
+    header: { backgroundColor: t.surface, borderBottomColor: t.border, borderBottomWidth: t.isDark ? 0 : 0.5 },
+    iconBtn: { backgroundColor: t.surfaceAlt },
+    hero: { backgroundColor: t.surface },
+    heroImageWrap: { backgroundColor: t.surfaceAlt },
+    heroCategory: { color: t.textMuted },
+    heroName: { color: t.textPrimary },
+    heroPriceLabel: { color: t.textMuted },
+    metaItem: { color: t.textSecondary },
+    metaDot: { color: t.textMuted },
     card: { backgroundColor: t.surface, borderColor: t.border },
     sectionTitle: { color: t.textSecondary },
     vendorCard: { backgroundColor: t.surface, borderColor: t.border },
@@ -139,8 +148,8 @@ export default function ProductDetailScreen() {
   if (productLoading || !product) {
     return (
       <View style={[styles.screen, dyn.screen, { paddingTop: insets.top }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeftIcon size={22} color={colors.white} />
+        <Pressable onPress={() => router.back()} style={[styles.backBtn, dyn.iconBtn]}>
+          <ArrowLeftIcon size={22} color={t.textPrimary} />
         </Pressable>
         <LoadingSpinner />
       </View>
@@ -152,7 +161,7 @@ export default function ProductDetailScreen() {
   const heroContent = (
     <>
       {product.imageUrl && (
-        <View style={styles.heroImageWrap}>
+        <View style={[styles.heroImageWrap, dyn.heroImageWrap]}>
           <Image
             source={{ uri: product.imageUrl }}
             style={StyleSheet.absoluteFill}
@@ -160,11 +169,11 @@ export default function ProductDetailScreen() {
           />
         </View>
       )}
-      <Text style={styles.heroCategory}>{product.category} · {product.subcategory}</Text>
-      <Text style={styles.heroName}>{product.name}</Text>
+      <Text style={[styles.heroCategory, dyn.heroCategory]}>{product.category} · {product.subcategory}</Text>
+      <Text style={[styles.heroName, dyn.heroName]}>{product.name}</Text>
       <View style={styles.heroPriceRow}>
         <Text style={styles.heroBestPrice}>{formatKES(product.bestPrice)}</Text>
-        <Text style={styles.heroPriceLabel}>best price</Text>
+        <Text style={[styles.heroPriceLabel, dyn.heroPriceLabel]}>best price</Text>
         <View style={[styles.changeChip, isUp ? styles.changeUp : styles.changeDn]}>
           <Text style={[styles.changeText, isUp ? styles.changeTextUp : styles.changeTextDn]}>
             {isUp ? '▲' : '▼'} {Math.abs(product.priceChangePct).toFixed(1)}%
@@ -173,13 +182,13 @@ export default function ProductDetailScreen() {
       </View>
       <View style={styles.heroMeta}>
         <View style={styles.metaIconRow}>
-          <StorefrontIcon size={12} color="rgba(255,255,255,0.45)" />
-          <Text style={styles.metaItem}>{product.vendorCount} vendors</Text>
+          <StorefrontIcon size={12} color={t.textMuted} />
+          <Text style={[styles.metaItem, dyn.metaItem]}>{product.vendorCount} vendors</Text>
         </View>
-        <Text style={styles.metaDot}>·</Text>
-        <Text style={styles.metaItem}>Avg {formatKES(product.avgPrice)}</Text>
-        <Text style={styles.metaDot}>·</Text>
-        <Text style={styles.metaItem}>{product.unit}</Text>
+        <Text style={[styles.metaDot, dyn.metaDot]}>·</Text>
+        <Text style={[styles.metaItem, dyn.metaItem]}>Avg {formatKES(product.avgPrice)}</Text>
+        <Text style={[styles.metaDot, dyn.metaDot]}>·</Text>
+        <Text style={[styles.metaItem, dyn.metaItem]}>{product.unit}</Text>
       </View>
     </>
   );
@@ -326,20 +335,20 @@ export default function ProductDetailScreen() {
         <meta name="description" content={`Compare prices for ${product.name} across ${product.vendorCount} vendors in Nairobi. Best price: ${formatKES(product.bestPrice)}.`} />
       </Head>
       {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeftIcon size={20} color={colors.white} />
+      <View style={[styles.header, dyn.header]}>
+        <Pressable onPress={() => router.back()} style={[styles.backBtn, dyn.iconBtn]}>
+          <ArrowLeftIcon size={20} color={t.textPrimary} />
         </Pressable>
         <View style={styles.headerActions}>
-          <Pressable onPress={handleWatchlist} style={styles.iconBtn}>
+          <Pressable onPress={handleWatchlist} style={[styles.iconBtn, dyn.iconBtn]}>
             <HeartIcon
               size={20}
-              color={watchlisted ? colors.red[400] : colors.white}
+              color={watchlisted ? colors.red[400] : t.textPrimary}
               weight={watchlisted ? 'fill' : 'duotone'}
             />
           </Pressable>
-          <Pressable onPress={() => {}} style={styles.iconBtn}>
-            <ShareNetworkIcon size={20} color={colors.white} />
+          <Pressable onPress={() => {}} style={[styles.iconBtn, dyn.iconBtn]}>
+            <ShareNetworkIcon size={20} color={t.textPrimary} />
           </Pressable>
         </View>
       </View>
@@ -347,7 +356,7 @@ export default function ProductDetailScreen() {
       {isDesktop ? (
         <ResponsiveContainer>
           <View style={styles.desktopRow}>
-            <View style={styles.desktopHeroPane}>{heroContent}</View>
+            <View style={[styles.desktopHeroPane, dyn.hero]}>{heroContent}</View>
             <ScrollView
               style={styles.desktopContentPane}
               showsVerticalScrollIndicator={false}
@@ -360,7 +369,7 @@ export default function ProductDetailScreen() {
         </ResponsiveContainer>
       ) : (
         <>
-          <View style={styles.productHero}>{heroContent}</View>
+          <View style={[styles.productHero, dyn.hero]}>{heroContent}</View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {mainSections}
             <View style={{ height: insets.bottom + 24 }} />

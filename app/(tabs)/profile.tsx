@@ -96,6 +96,13 @@ export default function ProfileScreen() {
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
+    hero: { backgroundColor: t.surface, borderBottomColor: t.border, borderBottomWidth: t.isDark ? 0 : 0.5 },
+    heroName: { color: t.textPrimary },
+    heroRole: { color: t.textSecondary },
+    statsStrip: { backgroundColor: t.surfaceAlt },
+    stripStatBorder: { borderColor: t.border },
+    stripValue: { color: t.textPrimary },
+    stripLabel: { color: t.textMuted },
     group: { backgroundColor: t.surface, borderColor: t.border },
     settingsRowHovered: { backgroundColor: t.surfaceAlt },
     settingsLabel: { color: t.textPrimary },
@@ -166,28 +173,28 @@ export default function ProfileScreen() {
       </Head>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Hero */}
-        <View style={styles.hero}>
+        <View style={[styles.hero, dyn.hero]}>
           <View style={styles.bigAvatar}>
             <Text style={styles.bigAvatarText}>{initials}</Text>
           </View>
-          <Text style={styles.heroName}>{user?.businessName ?? 'Blaze Solutions Ltd'}</Text>
-          <Text style={styles.heroRole}>
+          <Text style={[styles.heroName, dyn.heroName]}>{user?.businessName ?? 'Blaze Solutions Ltd'}</Text>
+          <Text style={[styles.heroRole, dyn.heroRole]}>
             {user?.plan === 'business' ? 'Business account' : 'Free account'} · {user?.location ?? 'Nairobi'}
           </Text>
 
           {/* Stats strip */}
-          <View style={styles.statsStrip}>
+          <View style={[styles.statsStrip, dyn.statsStrip]}>
             <View style={styles.stripStat}>
-              <Text style={styles.stripValue}>{watchlistIds.size}</Text>
-              <Text style={styles.stripLabel}>Watchlist</Text>
+              <Text style={[styles.stripValue, dyn.stripValue]}>{watchlistIds.size}</Text>
+              <Text style={[styles.stripLabel, dyn.stripLabel]}>Watchlist</Text>
             </View>
-            <View style={[styles.stripStat, styles.stripStatBorder]}>
-              <Text style={styles.stripValue}>{alerts.length}</Text>
-              <Text style={styles.stripLabel}>Price alerts</Text>
+            <View style={[styles.stripStat, styles.stripStatBorder, dyn.stripStatBorder]}>
+              <Text style={[styles.stripValue, dyn.stripValue]}>{alerts.length}</Text>
+              <Text style={[styles.stripLabel, dyn.stripLabel]}>Price alerts</Text>
             </View>
             <View style={styles.stripStat}>
-              <Text style={styles.stripValue}>{savedVendorIds.size}</Text>
-              <Text style={styles.stripLabel}>Saved vendors</Text>
+              <Text style={[styles.stripValue, dyn.stripValue]}>{savedVendorIds.size}</Text>
+              <Text style={[styles.stripLabel, dyn.stripLabel]}>Saved vendors</Text>
             </View>
           </View>
         </View>

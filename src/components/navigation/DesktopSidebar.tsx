@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import { Text } from '@/components/common/Text';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BellIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
 import { useAppStore } from '@/store';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { TAB_ROUTE_ICONS } from './tabConfig';
 
 const SIDEBAR_WIDTH = 232;
@@ -23,14 +24,29 @@ function DesktopSidebarInner({ state, descriptors, navigation }: BottomTabBarPro
   const user = useAppStore(s => s.user);
   const unreadCount = useAppStore(s => s.unreadCount);
   const initials = user?.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() ?? 'BL';
+  const t = useThemeColors();
+  const dyn = useMemo(() => StyleSheet.create({
+    sidebar: { backgroundColor: t.surface, borderRightColor: t.border, borderRightWidth: t.isDark ? 0 : 0.5 },
+    brandName: { color: t.textPrimary },
+    searchHint: { backgroundColor: t.surfaceAlt },
+    searchHintHover: { backgroundColor: t.divider },
+    searchHintText: { color: t.textMuted },
+    kbdChip: { borderColor: t.border },
+    kbdChipText: { color: t.textMuted },
+    navItemHover: { backgroundColor: t.surfaceAlt },
+    navLabel: { color: t.textSecondary },
+    userChipHover: { backgroundColor: t.surfaceAlt },
+    userName: { color: t.textPrimary },
+    userMeta: { color: t.textMuted },
+  }), [t]);
 
   return (
-    <View style={styles.sidebar}>
+    <View style={[styles.sidebar, dyn.sidebar]}>
       <View style={styles.brand}>
         <View style={styles.brandMark}>
           <Text style={styles.brandMarkText}>SP</Text>
         </View>
-        <Text style={styles.brandName}>SokoPrice</Text>
+        <Text style={[styles.brandName, dyn.brandName]}>SokoPrice</Text>
       </View>
 
       <Pressable
@@ -39,12 +55,12 @@ function DesktopSidebarInner({ state, descriptors, navigation }: BottomTabBarPro
             document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
           }
         }}
-        style={({ hovered }) => [styles.searchHint, hovered && styles.searchHintHover]}
+        style={({ hovered }) => [styles.searchHint, dyn.searchHint, hovered && dyn.searchHintHover]}
       >
-        <MagnifyingGlassIcon size={14} color="rgba(255,255,255,0.4)" />
-        <Text style={styles.searchHintText}>Search</Text>
-        <View style={styles.kbdChip}>
-          <Text style={styles.kbdChipText}>⌘K</Text>
+        <MagnifyingGlassIcon size={14} color={t.textMuted} />
+        <Text style={[styles.searchHintText, dyn.searchHintText]}>Search</Text>
+        <View style={[styles.kbdChip, dyn.kbdChip]}>
+          <Text style={[styles.kbdChipText, dyn.kbdChipText]}>⌘K</Text>
         </View>
       </Pressable>
 
@@ -71,17 +87,17 @@ function DesktopSidebarInner({ state, descriptors, navigation }: BottomTabBarPro
               style={({ hovered, focused: keyboardFocused }) => [
                 styles.navItem,
                 focused && styles.navItemActive,
-                (hovered || keyboardFocused) && !focused && styles.navItemHover,
+                (hovered || keyboardFocused) && !focused && dyn.navItemHover,
               ]}
             >
               {IconCmp && (
                 <IconCmp
                   size={20}
-                  color={focused ? colors.navy[800] : 'rgba(255,255,255,0.65)'}
+                  color={focused ? colors.navy[800] : t.textSecondary}
                   weight={focused ? 'fill' : 'duotone'}
                 />
               )}
-              <Text style={[styles.navLabel, focused && styles.navLabelActive]}>{label}</Text>
+              <Text style={[styles.navLabel, dyn.navLabel, focused && styles.navLabelActive]}>{label}</Text>
               {badge !== undefined && badge > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
@@ -94,16 +110,16 @@ function DesktopSidebarInner({ state, descriptors, navigation }: BottomTabBarPro
 
       <Pressable
         onPress={() => navigation.navigate('profile')}
-        style={({ hovered }) => [styles.userChip, hovered && styles.userChipHover]}
+        style={({ hovered }) => [styles.userChip, hovered && dyn.userChipHover]}
       >
         <View style={styles.userAvatar}>
           <Text style={styles.userAvatarText}>{initials}</Text>
         </View>
         <View style={styles.userInfo}>
-          <Text style={styles.userName} numberOfLines={1}>{user?.businessName ?? 'Blaze Solutions Ltd'}</Text>
-          <Text style={styles.userMeta} numberOfLines={1}>{user?.location ?? 'Nairobi, Kenya'}</Text>
+          <Text style={[styles.userName, dyn.userName]} numberOfLines={1}>{user?.businessName ?? 'Blaze Solutions Ltd'}</Text>
+          <Text style={[styles.userMeta, dyn.userMeta]} numberOfLines={1}>{user?.location ?? 'Nairobi, Kenya'}</Text>
         </View>
-        <BellIcon size={16} color="rgba(255,255,255,0.4)" />
+        <BellIcon size={16} color={t.textMuted} />
       </Pressable>
     </View>
   );

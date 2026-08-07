@@ -163,13 +163,17 @@ const SLIDES: Slide[] = [
     aspect: 800 / 643,
     // Screen measured by pixel-sampling the source photo: a slight
     // trapezoid (68,42)-(555,42)-(583,342)-(70,353) out of 800x643.
+    // The clip-path polygon is inset ~15% toward center from those raw
+    // corners — the darkness-threshold scan that found them included a
+    // sliver of the surrounding bezel, which spilled the overlay onto
+    // the frame instead of staying inside the actual screen glass.
     screenOverlay: {
       uri: LAPTOP_UI_DATA_URI,
       left: '8.5%',
       top: '6.4%',
       width: '64.4%',
       height: '48.5%',
-      clipPath: 'polygon(0% 0%, 94.6% 0%, 100% 96.5%, 0% 100%)',
+      clipPath: 'polygon(7.5% 7.5%, 87.9% 7.5%, 92.5% 89.5%, 7.5% 92.5%)',
     },
   },
   {
@@ -177,13 +181,18 @@ const SLIDES: Slide[] = [
     title: 'Real vendors, real deals',
     caption: 'Verified sellers list their stock in minutes and reach thousands of buyers across the city.',
     aspect: 334 / 711,
-    // Near-bezel-less screen, measured (3,20)-(330,700) out of 334x711.
+    // Screen measured (3,20)-(330,700) out of 334x711. Inset ~15%
+    // toward center for the same bezel-bleed reason as the laptop —
+    // the phone's dark bezel matched the same darkness threshold as
+    // the (also dark, powered-off) screen, so the raw measurement ran
+    // slightly wide of the actual glass.
     screenOverlay: {
       uri: PHONE_UI_DATA_URI,
       left: '0.9%',
       top: '2.8%',
       width: '97.9%',
       height: '95.7%',
+      clipPath: 'inset(7.5%)',
     },
   },
   {

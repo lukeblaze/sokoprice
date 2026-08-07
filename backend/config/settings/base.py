@@ -102,8 +102,12 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 20,
+    # No default pagination — every existing mock function returns a
+    # plain array (Product[], Vendor[], etc.), and the frontend hooks
+    # expect that shape directly, not a {count,next,previous,results}
+    # wrapper. The one endpoint that needs a custom wrapper
+    # (notifications' {results, unreadCount} in Phase 5) builds it
+    # explicitly in its own view instead.
 }
 
 SIMPLE_JWT = {

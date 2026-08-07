@@ -1,12 +1,5 @@
 import axios from 'axios';
-import {
-  MOCK_PRODUCTS,
-  MOCK_VENDORS,
-  MOCK_VENDOR_LISTINGS,
-  MOCK_TRENDS,
-  MOCK_MARKET_SUMMARY,
-  MOCK_TICKER,
-} from '@/utils/mockData';
+import { MOCK_VENDORS } from '@/utils/mockData';
 import type { Product, Vendor, VendorListing, PriceTrend, MarketSummary, TickerItem } from '@/types';
 
 // Fields an admin fills in when adding/editing a vendor — the rest
@@ -58,7 +51,7 @@ api.interceptors.response.use(
   }
 );
 
-// ─── Mock delay helper ────────────────────────────────────────────────────────
+// ─── Mock delay helper (still used by vendor mutations, Phase 4) ──────────────
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -66,60 +59,32 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 export const productsApi = {
   getAll: async (category?: string): Promise<Product[]> => {
-    await delay(400);
-    if (category && category !== 'All') {
-      return MOCK_PRODUCTS.filter(p => p.category === category);
-    }
-    return MOCK_PRODUCTS;
+    const { data } = await api.get<Product[]>('/products/', {
+      params: category && category !== 'All' ? { category } : undefined,
+    });
+    return data;
   },
 
   getById: async (id: string): Promise<Product> => {
-    await delay(250);
-    const product = MOCK_PRODUCTS.find(p => p.id === id);
-    if (!product) throw new Error('Product not found');
-    return product;
+    const { data } = await api.get<Product>(`/products/${id}/`);
+    return data;
   },
 
   search: async (query: string, category?: string): Promise<Product[]> => {
-    await delay(300);
-    let results = MOCK_PRODUCTS;
-    if (category && category !== 'All') {
-      results = results.filter(p => p.category === category);
-    }
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      results = results.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.tags.some(t => t.toLowerCase().includes(q))
-      );
-    }
-    return results;
+    const { data } = await api.get<Product[]>('/products/search/', {
+      params: { q: query, ...(category && category !== 'All' ? { category } : {}) },
+    });
+    return data;
   },
 
   getTrend: async (productId: string): Promise<PriceTrend> => {
-    await delay(300);
-    const trend = MOCK_TRENDS[productId];
-    if (!trend) {
-      // Generate on the fly for products without explicit trend data
-      const product = MOCK_PRODUCTS.find(p => p.id === productId);
-      if (!product) throw new Error('Product not found');
-      const points = [];
-      let price = product.bestPrice * 1.05;
-      for (let i = 30; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        price = price + (product.bestPrice - price) * 0.08 + (Math.random() - 0.5) * product.bestPrice * 0.01;
-        points.push({ date: d.toISOString().split('T')[0], avgPrice: Math.round(price), minPrice: Math.round(price * 0.97) });
-      }
-      return { productId, period: '30d', dataPoints: points };
-    }
-    return trend;
+    const { data } = await api.get<PriceTrend>(`/products/${productId}/trend/`);
+    return data;
   },
 
   getVendorListings: async (productId: string): Promise<VendorListing[]> => {
-    await delay(350);
-    return MOCK_VENDOR_LISTINGS[productId] ?? [];
+    const { data } = await api.get<VendorListing[]>(`/products/${productId}/vendors/`);
+    return data;
   },
 };
 
@@ -127,29 +92,18 @@ export const productsApi = {
 
 export const vendorsApi = {
   getAll: async (): Promise<Vendor[]> => {
-    await delay(400);
-    // Fresh array reference each call — MOCK_VENDORS is mutated in place
-    // by create/update/remove, and react-query's structural sharing
-    // would otherwise treat the unchanged reference as "no new data".
-    return [...MOCK_VENDORS];
+    const { data } = await api.get<Vendor[]>('/vendors/');
+    return data;
   },
 
   getById: async (id: string): Promise<Vendor> => {
-    await delay(250);
-    const vendor = MOCK_VENDORS.find(v => v.id === id);
-    if (!vendor) throw new Error('Vendor not found');
-    return vendor;
+    const { data } = await api.get<Vendor>(`/vendors/${id}/`);
+    return data;
   },
 
   search: async (query: string): Promise<Vendor[]> => {
-    await delay(300);
-    if (!query.trim()) return [...MOCK_VENDORS];
-    const q = query.toLowerCase();
-    return MOCK_VENDORS.filter(v =>
-      v.name.toLowerCase().includes(q) ||
-      v.category.toLowerCase().includes(q) ||
-      v.area.toLowerCase().includes(q)
-    );
+    const { data } = await api.get<Vendor[]>('/vendors/search/', { params: { q: query } });
+    return data;
   },
 
   create: async (input: VendorInput): Promise<Vendor> => {
@@ -204,13 +158,13 @@ export const vendorsApi = {
 
 export const marketApi = {
   getSummary: async (): Promise<MarketSummary> => {
-    await delay(400);
-    return MOCK_MARKET_SUMMARY;
+    const { data } = await api.get<MarketSummary>('/market/summary/');
+    return data;
   },
 
   getTicker: async (): Promise<TickerItem[]> => {
-    await delay(200);
-    return MOCK_TICKER;
+    const { data } = await api.get<TickerItem[]>('/market/ticker/');
+    return data;
   },
 };
 

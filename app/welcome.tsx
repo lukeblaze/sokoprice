@@ -228,20 +228,20 @@ type Role = 'center' | 'left' | 'right' | 'back';
 
 // Center is enlarged dramatically so the object dominates the screen,
 // like the reference site — side/back slots stay small and receded.
-// Height uses `vh` on web (not `%`) — `vh` always resolves against the
-// viewport directly with no ambiguity, which lets the CSS `aspectRatio`
-// on the box derive an exact matching width. A percentage height paired
-// with `aspectRatio` on an absolutely-positioned, auto-width box doesn't
-// reliably resolve, which let the box's rendered aspect ratio drift
-// from the photo's and threw off the device-screen overlay position.
-// Native has no `vh` unit, so it keeps the original percentage.
+// `heightPct` is a plain number: SlideFigure converts it to an
+// explicit pixel height itself (via useWindowDimensions) rather than
+// leaning on CSS `aspectRatio`/`vh` resolution, which proved unreliable
+// on this box (position:absolute, auto width, height driven by a
+// re-rendering/transitioning cycle) — the box's rendered aspect ratio
+// kept drifting from the photo's, which threw off the device-screen
+// overlay position. Plain numeric width/height sidesteps that class of
+// CSS resolution issue entirely.
 function roleStyle(role: Role, isMobile: boolean) {
-  const unit = Platform.OS === 'web' ? 'vh' : '%';
   switch (role) {
     case 'center':
       return {
         left: '50%',
-        height: `${isMobile ? 78 : 104}${unit}`,
+        heightPct: isMobile ? 78 : 104,
         bottom: isMobile ? '15%' : '-4%',
         blur: 0,
         opacity: 1,
@@ -251,7 +251,7 @@ function roleStyle(role: Role, isMobile: boolean) {
     case 'left':
       return {
         left: isMobile ? '10%' : '20%',
-        height: `${isMobile ? 16 : 24}${unit}`,
+        heightPct: isMobile ? 16 : 24,
         bottom: isMobile ? '32%' : '16%',
         blur: 3,
         opacity: 0.6,
@@ -261,7 +261,7 @@ function roleStyle(role: Role, isMobile: boolean) {
     case 'right':
       return {
         left: isMobile ? '90%' : '80%',
-        height: `${isMobile ? 16 : 24}${unit}`,
+        heightPct: isMobile ? 16 : 24,
         bottom: isMobile ? '32%' : '16%',
         blur: 3,
         opacity: 0.6,
@@ -271,7 +271,7 @@ function roleStyle(role: Role, isMobile: boolean) {
     case 'back':
       return {
         left: '50%',
-        height: `${isMobile ? 13 : 19}${unit}`,
+        heightPct: isMobile ? 13 : 19,
         bottom: isMobile ? '32%' : '16%',
         blur: 6,
         opacity: 0.85,
@@ -294,7 +294,10 @@ function SlideFigure({
   isMobile: boolean;
   screenOverlay?: ScreenOverlay;
 }) {
+  const { height: windowHeight } = useWindowDimensions();
   const rs = roleStyle(role, isMobile);
+  const heightPx = windowHeight * (rs.heightPct / 100);
+  const widthPx = heightPx * aspect;
   const blurStyle = Platform.OS === 'web' && rs.blur > 0
     ? ({ filter: `blur(${rs.blur}px)` } as any)
     : {};
@@ -326,8 +329,8 @@ function SlideFigure({
         {
           left: rs.left as any,
           bottom: rs.bottom as any,
-          height: rs.height as any,
-          aspectRatio: aspect,
+          width: widthPx,
+          height: heightPx,
           opacity: rs.opacity,
           zIndex: rs.zIndex,
         },

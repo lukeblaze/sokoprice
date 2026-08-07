@@ -10,7 +10,8 @@ import {
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
 import Head from 'expo-router/head';
-import { ArrowLeftIcon, ArrowRightIcon } from 'phosphor-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowRightIcon } from 'phosphor-react-native';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 
@@ -48,6 +49,30 @@ const SLIDES: Slide[] = [
   },
 ];
 
+const LOOP_INTERVAL = 4200;
+const TRANSITION_MS = 750;
+
+// Fractal-noise film-grain texture, layered over the whole hero for a
+// premium, non-flat surface instead of a plain color fill.
+const GRAIN_DATA_URI =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E";
+
+const SWAY_KEYFRAMES_ID = 'sokoprice-sway-keyframes';
+
+function injectSwayKeyframes() {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  if (document.getElementById(SWAY_KEYFRAMES_ID)) return;
+  const style = document.createElement('style');
+  style.id = SWAY_KEYFRAMES_ID;
+  style.textContent = `
+    @keyframes sokoprice-sway {
+      0%, 100% { transform: perspective(900px) rotateY(-8deg) translateY(0px); }
+      50% { transform: perspective(900px) rotateY(8deg) translateY(-6px); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 type Role = 'center' | 'left' | 'right' | 'back';
 
 function roleStyle(role: Role, isMobile: boolean) {
@@ -55,44 +80,109 @@ function roleStyle(role: Role, isMobile: boolean) {
     case 'center':
       return {
         left: '50%',
-        height: isMobile ? '60%' : '92%',
-        bottom: isMobile ? '22%' : 0,
-        scale: isMobile ? 1.25 : 1.68,
+        height: isMobile ? '58%' : '90%',
+        bottom: isMobile ? '24%' : '2%',
+        scale: isMobile ? 1.2 : 1.6,
         blur: 0,
         opacity: 1,
         zIndex: 20,
+        shadow: 0.5,
       };
     case 'left':
       return {
-        left: isMobile ? '20%' : '30%',
-        height: isMobile ? '16%' : '28%',
-        bottom: isMobile ? '32%' : '12%',
+        left: isMobile ? '14%' : '26%',
+        height: isMobile ? '15%' : '26%',
+        bottom: isMobile ? '30%' : '14%',
         scale: 1,
-        blur: 2,
-        opacity: 0.85,
+        blur: 3,
+        opacity: 0.7,
         zIndex: 10,
+        shadow: 0.25,
       };
     case 'right':
       return {
-        left: isMobile ? '80%' : '70%',
-        height: isMobile ? '16%' : '28%',
-        bottom: isMobile ? '32%' : '12%',
+        left: isMobile ? '86%' : '74%',
+        height: isMobile ? '15%' : '26%',
+        bottom: isMobile ? '30%' : '14%',
         scale: 1,
-        blur: 2,
-        opacity: 0.85,
+        blur: 3,
+        opacity: 0.7,
         zIndex: 10,
+        shadow: 0.25,
       };
     case 'back':
       return {
         left: '50%',
-        height: isMobile ? '13%' : '22%',
-        bottom: isMobile ? '32%' : '12%',
+        height: isMobile ? '12%' : '20%',
+        bottom: isMobile ? '30%' : '14%',
         scale: 1,
-        blur: 4,
-        opacity: 1,
+        blur: 6,
+        opacity: 0.9,
         zIndex: 5,
+        shadow: 0.15,
       };
   }
+}
+
+function SlideFigure({
+  role,
+  src,
+  isMobile,
+}: {
+  role: Role;
+  src: string;
+  isMobile: boolean;
+}) {
+  const rs = roleStyle(role, isMobile);
+  const itemWidth = isMobile ? 118 : 170;
+  const blurStyle = Platform.OS === 'web' && rs.blur > 0
+    ? ({ filter: `blur(${rs.blur}px)` } as any)
+    : {};
+  const webTransition = Platform.OS === 'web'
+    ? ({
+        transitionProperty: 'transform, filter, opacity, left, bottom, height',
+        transitionDuration: `${TRANSITION_MS}ms`,
+        transitionTimingFunction: 'cubic-bezier(0.4,0,0.2,1)',
+      } as any)
+    : {};
+
+  // Continuous "living figurine" sway on the center slot — plain CSS
+  // @keyframes (see injectSwayKeyframes below) rather than a JS-driven
+  // animation, since it only needs to run on web and CSS handles an
+  // infinite loop more cheaply than re-rendering every frame.
+  const swayStyle = Platform.OS === 'web' && role === 'center'
+    ? ({
+        animationName: 'sokoprice-sway',
+        animationDuration: '4800ms',
+        animationIterationCount: 'infinite',
+        animationTimingFunction: 'ease-in-out',
+      } as any)
+    : undefined;
+
+  return (
+    <View
+      style={[
+        styles.slideItem,
+        {
+          width: itemWidth,
+          left: rs.left as any,
+          height: rs.height as any,
+          bottom: rs.bottom as any,
+          opacity: rs.opacity,
+          zIndex: rs.zIndex,
+          transform: [{ translateX: -itemWidth / 2 }, { scale: rs.scale }],
+        },
+        blurStyle,
+        webTransition,
+      ]}
+    >
+      {/* Grounding shadow — sells the "object floating in space" read */}
+      <View style={[styles.floorShadow, { opacity: rs.shadow, width: itemWidth * 0.8, left: itemWidth * 0.1 }]} />
+      <View style={[styles.slideImageWrap, swayStyle]}>
+        <Image source={{ uri: src }} style={styles.slideImage} resizeMode="contain" />
+      </View>
+    </View>
+  );
 }
 
 export default function WelcomeScreen() {
@@ -104,15 +194,20 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
+    injectSwayKeyframes();
     SLIDES.forEach(s => { const img = new (window as any).Image(); img.src = s.src; });
   }, []);
 
-  const navigate = (dir: 'next' | 'prev') => {
-    if (isAnimating.current) return;
-    isAnimating.current = true;
-    setActiveIndex(prev => (dir === 'next' ? (prev + 1) % 4 : (prev + 3) % 4));
-    setTimeout(() => { isAnimating.current = false; }, 650);
-  };
+  // Fully automatic loop — no manual controls driving the carousel.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (isAnimating.current) return;
+      isAnimating.current = true;
+      setActiveIndex(prev => (prev + 1) % SLIDES.length);
+      setTimeout(() => { isAnimating.current = false; }, TRANSITION_MS);
+    }, LOOP_INTERVAL);
+    return () => clearInterval(id);
+  }, []);
 
   const roles: Record<number, Role> = {
     [activeIndex]: 'center',
@@ -122,16 +217,27 @@ export default function WelcomeScreen() {
   };
 
   const slide = SLIDES[activeIndex];
-  const webTransition = Platform.OS === 'web'
-    ? ({ transitionProperty: 'transform, filter, opacity, left, bottom, height', transitionDuration: '650ms', transitionTimingFunction: 'cubic-bezier(0.4,0,0.2,1)' } as any)
+  const bgTransition = Platform.OS === 'web'
+    ? ({ transition: `background-color ${TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)` } as any)
     : {};
 
   return (
-    <View style={[styles.screen, { backgroundColor: slide.bg }, Platform.OS === 'web' ? ({ transition: 'background-color 650ms cubic-bezier(0.4,0,0.2,1)' } as any) : {}]}>
+    <View style={[styles.screen, { backgroundColor: slide.bg }, bgTransition]}>
       <Head>
         <title>SokoPrice — Compare vendor prices in Nairobi</title>
         <meta name="description" content="The fastest way to compare prices across Nairobi vendors, track trends, and never overpay again." />
       </Head>
+
+      {/* Grain texture */}
+      {Platform.OS === 'web' && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.grain,
+            { backgroundImage: `url("${GRAIN_DATA_URI}")`, backgroundSize: '200px 200px' } as any,
+          ]}
+        />
+      )}
 
       {/* Giant ghost brand text */}
       <View style={styles.ghostWrap} pointerEvents="none">
@@ -156,57 +262,29 @@ export default function WelcomeScreen() {
         <Text style={styles.signInText}>Sign in</Text>
       </Pressable>
 
-      {/* Carousel */}
+      {/* Carousel — auto-looping, no manual nav */}
       <View style={styles.carousel} pointerEvents="none">
-        {SLIDES.map((s, i) => {
-          const role = roles[i];
-          const rs = roleStyle(role, isMobile);
-          const itemWidth = isMobile ? 120 : 160;
-          const blurStyle = Platform.OS === 'web' && rs.blur > 0
-            ? ({ filter: `blur(${rs.blur}px)` } as any)
-            : {};
-          return (
-            <View
-              key={s.src}
-              style={[
-                styles.slideItem,
-                {
-                  width: itemWidth,
-                  left: rs.left as any,
-                  height: rs.height as any,
-                  bottom: rs.bottom as any,
-                  opacity: rs.opacity,
-                  zIndex: rs.zIndex,
-                  transform: [{ translateX: -itemWidth / 2 }, { scale: rs.scale }],
-                },
-                blurStyle,
-                webTransition,
-              ]}
-            >
-              <Image source={{ uri: s.src }} style={styles.slideImage} resizeMode="contain" />
-            </View>
-          );
-        })}
+        {SLIDES.map((s, i) => (
+          <SlideFigure key={s.src} role={roles[i]} src={s.src} isMobile={isMobile} />
+        ))}
       </View>
 
-      {/* Bottom-left caption + nav */}
+      {/* Bottom gradient scrim for text legibility */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['transparent', 'rgba(0,0,0,0.35)']}
+        style={styles.bottomScrim}
+      />
+
+      {/* Bottom-left caption + loop progress */}
       <View style={styles.bottomLeft}>
+        <View style={styles.dotsRow}>
+          {SLIDES.map((_, i) => (
+            <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
+          ))}
+        </View>
         <Text style={styles.slideTitle}>{slide.title.toUpperCase()}</Text>
         {!isMobile && <Text style={styles.slideCaption}>{slide.caption}</Text>}
-        <View style={styles.navRow}>
-          <Pressable
-            onPress={() => navigate('prev')}
-            style={({ hovered }) => [styles.navBtn, hovered && styles.navBtnHovered]}
-          >
-            <ArrowLeftIcon size={22} color={colors.white} weight="bold" />
-          </Pressable>
-          <Pressable
-            onPress={() => navigate('next')}
-            style={({ hovered }) => [styles.navBtn, hovered && styles.navBtnHovered]}
-          >
-            <ArrowRightIcon size={22} color={colors.white} weight="bold" />
-          </Pressable>
-        </View>
       </View>
 
       {/* Bottom-right CTA */}
@@ -229,9 +307,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     ...(Platform.OS === 'web' ? ({ height: '100vh', minHeight: '100vh' } as any) : {}),
   },
+  grain: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.4,
+    zIndex: 50,
+  },
   ghostWrap: {
     position: 'absolute',
-    top: '16%',
+    top: '14%',
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -240,7 +327,7 @@ const styles = StyleSheet.create({
   ghostText: {
     fontSize: 130,
     fontFamily: 'Anton_400Regular',
-    color: 'rgba(255,255,255,0.14)',
+    color: 'rgba(255,255,255,0.16)',
     letterSpacing: -2,
   },
   brandLabel: {
@@ -280,17 +367,52 @@ const styles = StyleSheet.create({
   slideItem: {
     position: 'absolute',
   },
+  slideImageWrap: {
+    width: '100%',
+    height: '100%',
+  },
   slideImage: {
     width: '100%',
     height: '100%',
     borderRadius: radii.lg,
   },
+  floorShadow: {
+    position: 'absolute',
+    bottom: -6,
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    ...(Platform.OS === 'web' ? ({ filter: 'blur(8px)' } as any) : {}),
+  },
+  bottomScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '38%',
+    zIndex: 4,
+  },
   bottomLeft: {
     position: 'absolute',
-    bottom: 28,
+    bottom: 30,
     left: 20,
     maxWidth: 340,
     zIndex: 60,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 14,
+  },
+  dot: {
+    width: 18,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  dotActive: {
+    width: 30,
+    backgroundColor: colors.amber[400],
   },
   slideTitle: {
     fontSize: 26,
@@ -303,27 +425,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.85)',
     lineHeight: 20,
-    marginBottom: 18,
-  },
-  navRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  navBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.full,
-    borderWidth: 2,
-    borderColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navBtnHovered: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   ctaWrap: {
     position: 'absolute',
-    bottom: 28,
+    bottom: 30,
     right: 20,
     zIndex: 60,
     flexDirection: 'row',

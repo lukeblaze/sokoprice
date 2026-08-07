@@ -16,142 +16,12 @@ import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { useThemeColors } from '@/hooks/useThemeColors';
 
-// Small "screenshot" of the real app UI, precisely positioned over a
-// device photo's screen area (coordinates measured by sampling the
-// source image's pixels for the actual on-screen bounding box).
-interface ScreenOverlay {
-  uri: string;
-  top: string;
-  left: string;
-  width: string;
-  height: string;
-  clipPath?: string; // web-only — conforms the overlay to an angled (non-rectangular) screen
-}
-
 interface Slide {
   src: string;
   title: string;
   caption: string;
   aspect: number; // width / height, so the box doesn't distort the cutout
-  screenOverlay?: ScreenOverlay;
 }
-
-const HP_LAPTOP_PHOTO = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/HP_Pavilion_dv2000_laptop.jpg/960px-HP_Pavilion_dv2000_laptop.jpg';
-const MONITOR_PHOTO = 'https://upload.wikimedia.org/wikipedia/commons/4/45/LED_Screen_Computer.jpg';
-const ROUTER_PHOTO = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Ethernet_switch_Atlantis_A02-F5P_5_ports_backend.jpg/960px-Ethernet_switch_Atlantis_A02-F5P_5_ports_backend.jpg';
-const MOUSE_PHOTO = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/A_wireless_computer_mouse.jpg/960px-A_wireless_computer_mouse.jpg';
-
-// Status bar (time/signal/wifi/battery) sits inside the same navy
-// header band as the app content, like a real phone screenshot.
-const PHONE_UI_SVG = `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 320 680'>
-  <defs>
-    <clipPath id='p-img1'><rect x='32' y='164' width='64' height='64' rx='10'/></clipPath>
-    <clipPath id='p-img2'><rect x='32' y='270' width='64' height='64' rx='10'/></clipPath>
-    <clipPath id='p-img3'><rect x='32' y='376' width='64' height='64' rx='10'/></clipPath>
-  </defs>
-  <rect width='320' height='680' fill='#F7F5F0'/>
-  <rect width='320' height='76' fill='#0D1B2A'/>
-  <text x='16' y='16' font-family='Arial, sans-serif' font-size='10' font-weight='600' fill='#FFFFFF'>9:41</text>
-  <rect x='250' y='10' width='3' height='5' fill='#FFFFFF'/>
-  <rect x='255' y='7' width='3' height='8' fill='#FFFFFF'/>
-  <rect x='260' y='4' width='3' height='11' fill='#FFFFFF'/>
-  <rect x='265' y='1' width='3' height='14' fill='#FFFFFF'/>
-  <path d='M278 15 a9 9 0 0 1 13 0' stroke='#FFFFFF' stroke-width='1.6' fill='none'/>
-  <path d='M281.5 11.5 a4.5 4.5 0 0 1 6 0' stroke='#FFFFFF' stroke-width='1.6' fill='none'/>
-  <circle cx='284.5' cy='15.5' r='1.2' fill='#FFFFFF'/>
-  <rect x='296' y='5' width='19' height='10' rx='2.5' fill='none' stroke='#FFFFFF' stroke-width='1.2'/>
-  <rect x='315' y='8' width='2' height='4' fill='#FFFFFF'/>
-  <rect x='298' y='7' width='14' height='6' fill='#FFFFFF'/>
-  <text x='20' y='42' font-family='Arial, sans-serif' font-size='10' fill='#FFFFFF' fill-opacity='0.55'>Good morning</text>
-  <text x='20' y='62' font-family='Arial, sans-serif' font-size='18' font-weight='700' fill='#FFFFFF'>SokoPrice</text>
-  <circle cx='284' cy='46' r='15' fill='#FFFFFF' fill-opacity='0.12'/>
-  <circle cx='284' cy='46' r='3' fill='#E8A020'/>
-  <rect x='18' y='96' width='284' height='38' rx='19' fill='#FFFFFF'/>
-  <circle cx='42' cy='115' r='7' fill='none' stroke='#8E969E' stroke-width='2'/>
-  <rect x='18' y='150' width='284' height='92' rx='14' fill='#FFFFFF'/>
-  <image xlink:href='${HP_LAPTOP_PHOTO}' x='32' y='164' width='64' height='64' preserveAspectRatio='xMidYMid slice' clip-path='url(#p-img1)'/>
-  <text x='108' y='182' font-family='Arial, sans-serif' font-size='13' font-weight='600' fill='#0D1B2A'>HP EliteBook 850</text>
-  <text x='108' y='200' font-family='Arial, sans-serif' font-size='10' fill='#8E969E'>6 vendors comparing</text>
-  <text x='108' y='222' font-family='Arial, sans-serif' font-size='17' font-weight='700' fill='#E8A020'>KES 68,500</text>
-  <rect x='240' y='164' width='46' height='18' rx='9' fill='#E8F5EE'/>
-  <text x='248' y='177' font-family='Arial, sans-serif' font-size='9' font-weight='600' fill='#1A7A43'>-3.2%</text>
-  <rect x='18' y='256' width='284' height='92' rx='14' fill='#FFFFFF'/>
-  <image xlink:href='${MONITOR_PHOTO}' x='32' y='270' width='64' height='64' preserveAspectRatio='xMidYMid slice' clip-path='url(#p-img2)'/>
-  <text x='108' y='288' font-family='Arial, sans-serif' font-size='13' font-weight='600' fill='#0D1B2A'>Samsung 27" Monitor</text>
-  <text x='108' y='306' font-family='Arial, sans-serif' font-size='10' fill='#8E969E'>4 vendors comparing</text>
-  <text x='108' y='328' font-family='Arial, sans-serif' font-size='17' font-weight='700' fill='#E8A020'>KES 24,900</text>
-  <rect x='240' y='270' width='46' height='18' rx='9' fill='#FDECEA'/>
-  <text x='249' y='283' font-family='Arial, sans-serif' font-size='9' font-weight='600' fill='#C53030'>+1.4%</text>
-  <rect x='18' y='362' width='284' height='92' rx='14' fill='#FFFFFF'/>
-  <image xlink:href='${ROUTER_PHOTO}' x='32' y='376' width='64' height='64' preserveAspectRatio='xMidYMid slice' clip-path='url(#p-img3)'/>
-  <text x='108' y='394' font-family='Arial, sans-serif' font-size='13' font-weight='600' fill='#0D1B2A'>TP-Link Router</text>
-  <text x='108' y='412' font-family='Arial, sans-serif' font-size='10' fill='#8E969E'>9 vendors comparing</text>
-  <text x='108' y='434' font-family='Arial, sans-serif' font-size='17' font-weight='700' fill='#E8A020'>KES 3,200</text>
-  <rect x='240' y='376' width='46' height='18' rx='9' fill='#E8F5EE'/>
-  <text x='248' y='389' font-family='Arial, sans-serif' font-size='9' font-weight='600' fill='#1A7A43'>-5.0%</text>
-  <rect x='0' y='614' width='320' height='66' fill='#FFFFFF'/>
-  <rect x='0' y='614' width='320' height='1' fill='#EDF0F2'/>
-  <circle cx='52' cy='647' r='12' fill='#E8A020' fill-opacity='0.15'/>
-  <circle cx='52' cy='647' r='4' fill='#E8A020'/>
-  <circle cx='126' cy='647' r='4' fill='#D8DCE0'/>
-  <circle cx='200' cy='647' r='4' fill='#D8DCE0'/>
-  <circle cx='268' cy='647' r='4' fill='#D8DCE0'/>
-</svg>`;
-
-// Browser window chrome (traffic-light controls + address bar) across
-// the top, like a real browser tab showing the site — then the same
-// desktop layout below it.
-const LAPTOP_UI_SVG = `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 500 300'>
-  <defs>
-    <clipPath id='l-img1'><rect x='124' y='102' width='50' height='50' rx='8'/></clipPath>
-    <clipPath id='l-img2'><rect x='316' y='102' width='50' height='50' rx='8'/></clipPath>
-    <clipPath id='l-img3'><rect x='124' y='208' width='50' height='50' rx='8'/></clipPath>
-    <clipPath id='l-img4'><rect x='316' y='208' width='50' height='50' rx='8'/></clipPath>
-  </defs>
-  <rect width='500' height='24' fill='#E8ECF0'/>
-  <circle cx='14' cy='12' r='4' fill='#E53E3E'/>
-  <circle cx='28' cy='12' r='4' fill='#E8A020'/>
-  <circle cx='42' cy='12' r='4' fill='#2D9E5F'/>
-  <rect x='70' y='5' width='360' height='14' rx='7' fill='#FFFFFF'/>
-  <text x='84' y='15' font-family='Arial, sans-serif' font-size='8' fill='#4A5568'>sokoprice.co.ke</text>
-  <rect y='24' width='500' height='276' fill='#F7F5F0'/>
-  <rect y='24' width='92' height='276' fill='#0D1B2A'/>
-  <rect x='18' y='44' width='24' height='24' rx='6' fill='#E8A020'/>
-  <text x='18' y='90' font-family='Arial, sans-serif' font-size='11' font-weight='700' fill='#FFFFFF'>SokoPrice</text>
-  <rect x='14' y='116' width='64' height='26' rx='7' fill='#E8A020'/>
-  <rect x='14' y='152' width='64' height='26' rx='7' fill='#FFFFFF' fill-opacity='0.08'/>
-  <rect x='14' y='188' width='64' height='26' rx='7' fill='#FFFFFF' fill-opacity='0.08'/>
-  <rect x='14' y='224' width='64' height='26' rx='7' fill='#FFFFFF' fill-opacity='0.08'/>
-  <rect x='112' y='44' width='280' height='28' rx='14' fill='#FFFFFF'/>
-  <circle cx='132' cy='58' r='6' fill='none' stroke='#8E969E' stroke-width='1.6'/>
-  <rect x='112' y='90' width='180' height='94' rx='12' fill='#FFFFFF'/>
-  <image xlink:href='${HP_LAPTOP_PHOTO}' x='124' y='102' width='50' height='50' preserveAspectRatio='xMidYMid slice' clip-path='url(#l-img1)'/>
-  <text x='184' y='116' font-family='Arial, sans-serif' font-size='10' font-weight='600' fill='#0D1B2A'>HP EliteBook</text>
-  <text x='184' y='130' font-family='Arial, sans-serif' font-size='13' font-weight='700' fill='#E8A020'>68,500</text>
-  <rect x='124' y='164' width='40' height='14' rx='7' fill='#E8F5EE'/>
-  <text x='130' y='174' font-family='Arial, sans-serif' font-size='8' font-weight='600' fill='#1A7A43'>-3.2%</text>
-  <rect x='304' y='90' width='180' height='94' rx='12' fill='#FFFFFF'/>
-  <image xlink:href='${MONITOR_PHOTO}' x='316' y='102' width='50' height='50' preserveAspectRatio='xMidYMid slice' clip-path='url(#l-img2)'/>
-  <text x='376' y='116' font-family='Arial, sans-serif' font-size='10' font-weight='600' fill='#0D1B2A'>27" Monitor</text>
-  <text x='376' y='130' font-family='Arial, sans-serif' font-size='13' font-weight='700' fill='#E8A020'>24,900</text>
-  <rect x='316' y='164' width='40' height='14' rx='7' fill='#FDECEA'/>
-  <text x='323' y='174' font-family='Arial, sans-serif' font-size='8' font-weight='600' fill='#C53030'>+1.4%</text>
-  <rect x='112' y='196' width='180' height='94' rx='12' fill='#FFFFFF'/>
-  <image xlink:href='${ROUTER_PHOTO}' x='124' y='208' width='50' height='50' preserveAspectRatio='xMidYMid slice' clip-path='url(#l-img3)'/>
-  <text x='184' y='222' font-family='Arial, sans-serif' font-size='10' font-weight='600' fill='#0D1B2A'>TP-Link Router</text>
-  <text x='184' y='236' font-family='Arial, sans-serif' font-size='13' font-weight='700' fill='#E8A020'>3,200</text>
-  <rect x='124' y='270' width='40' height='14' rx='7' fill='#E8F5EE'/>
-  <text x='130' y='280' font-family='Arial, sans-serif' font-size='8' font-weight='600' fill='#1A7A43'>-5.0%</text>
-  <rect x='304' y='196' width='180' height='94' rx='12' fill='#FFFFFF'/>
-  <image xlink:href='${MOUSE_PHOTO}' x='316' y='208' width='50' height='50' preserveAspectRatio='xMidYMid slice' clip-path='url(#l-img4)'/>
-  <text x='376' y='222' font-family='Arial, sans-serif' font-size='10' font-weight='600' fill='#0D1B2A'>Roccat Mouse</text>
-  <text x='376' y='236' font-family='Arial, sans-serif' font-size='13' font-weight='700' fill='#E8A020'>4,500</text>
-  <rect x='316' y='270' width='40' height='14' rx='7' fill='#E8F5EE'/>
-  <text x='323' y='280' font-family='Arial, sans-serif' font-size='8' font-weight='600' fill='#1A7A43'>-2.1%</text>
-</svg>`;
-
-const PHONE_UI_DATA_URI = `data:image/svg+xml,${encodeURIComponent(PHONE_UI_SVG)}`;
-const LAPTOP_UI_DATA_URI = `data:image/svg+xml,${encodeURIComponent(LAPTOP_UI_SVG)}`;
 
 // Real product cutouts (transparent PNGs) so the carousel reads as
 // floating 3D objects instead of framed photographs.
@@ -161,36 +31,12 @@ const SLIDES: Slide[] = [
     title: 'Compare prices instantly',
     caption: 'See real prices from every vendor in Nairobi side by side — no more guessing, no more overpaying.',
     aspect: 800 / 643,
-    // Screen measured by pixel-sampling the source photo: a trapezoid
-    // (68,42)-(555,42)-(583,342)-(70,353) out of 800x643. A clip-path
-    // inset toward center made this worse — it cropped real content
-    // (the browser chrome, most of the sidebar) off the mockup instead
-    // of just trimming excess. This box is shrunk to 80% of the
-    // measured region and centered within it instead, so the whole
-    // mockup (nothing cropped) sits with a safety margin inside the
-    // screen rather than risking the raw measurement's edges.
-    screenOverlay: {
-      uri: LAPTOP_UI_DATA_URI,
-      left: '14.9%',
-      top: '11.3%',
-      width: '51.5%',
-      height: '38.8%',
-    },
   },
   {
     src: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/GalaxyA80Phone_Transparent.png',
     title: 'Real vendors, real deals',
     caption: 'Verified sellers list their stock in minutes and reach thousands of buyers across the city.',
     aspect: 334 / 711,
-    // Screen measured (3,20)-(330,700) out of 334x711, shrunk to 80%
-    // and centered — see the laptop comment above for why.
-    screenOverlay: {
-      uri: PHONE_UI_DATA_URI,
-      left: '10.7%',
-      top: '12.4%',
-      width: '78.3%',
-      height: '76.6%',
-    },
   },
   {
     src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Roccat_Kova.png/960px-Roccat_Kova.png',
@@ -292,13 +138,11 @@ function SlideFigure({
   src,
   aspect,
   isMobile,
-  screenOverlay,
 }: {
   role: Role;
   src: string;
   aspect: number;
   isMobile: boolean;
-  screenOverlay?: ScreenOverlay;
 }) {
   const { height: windowHeight } = useWindowDimensions();
   const rs = roleStyle(role, isMobile);
@@ -348,27 +192,6 @@ function SlideFigure({
       <View style={[styles.floorShadow, { opacity: rs.shadow }]} />
       <View style={[styles.slideImageWrap, swayStyle]}>
         <Image source={{ uri: src }} style={styles.slideImage} resizeMode="contain" />
-        {/* App-UI "ad" on the device screen — nested here so it inherits
-            the same sway transform as the photo instead of floating
-            independently of it. */}
-        {screenOverlay && (
-          <View
-            style={[
-              styles.screenOverlay,
-              {
-                top: screenOverlay.top as any,
-                left: screenOverlay.left as any,
-                width: screenOverlay.width as any,
-                height: screenOverlay.height as any,
-              },
-              Platform.OS === 'web' && screenOverlay.clipPath
-                ? ({ clipPath: screenOverlay.clipPath } as any)
-                : {},
-            ]}
-          >
-            <Image source={{ uri: screenOverlay.uri }} style={styles.slideImage} resizeMode="cover" />
-          </View>
-        )}
       </View>
     </View>
   );
@@ -498,7 +321,7 @@ export default function WelcomeScreen() {
       {/* Carousel — auto-looping, no manual nav */}
       <View style={styles.carousel} pointerEvents="none">
         {SLIDES.map((s, i) => (
-          <SlideFigure key={s.src} role={roles[i]} src={s.src} aspect={s.aspect} isMobile={isMobile} screenOverlay={s.screenOverlay} />
+          <SlideFigure key={s.src} role={roles[i]} src={s.src} aspect={s.aspect} isMobile={isMobile} />
         ))}
       </View>
 
@@ -611,10 +434,6 @@ const styles = StyleSheet.create({
   slideImage: {
     width: '100%',
     height: '100%',
-  },
-  screenOverlay: {
-    position: 'absolute',
-    overflow: 'hidden',
   },
   floorShadow: {
     position: 'absolute',

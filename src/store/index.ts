@@ -10,6 +10,11 @@ interface AppState {
   signIn: () => void;
   signOut: () => void;
 
+  // Admin — gates /admin/* routes. Real auth would derive this from the
+  // signed-in account's role; this is a settable mock flag for now.
+  isAdmin: boolean;
+  setIsAdmin: (isAdmin: boolean) => void;
+
   // Onboarding — has this session seen the welcome/advert screen yet
   hasOnboarded: boolean;
   completeOnboarding: () => void;
@@ -80,6 +85,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     watchlistIds: new Set(),
     savedVendorIds: new Set(),
   })),
+
+  isAdmin: true, // default on for this prototype — flip off in Profile to test the gate
+  setIsAdmin: (isAdmin) => set({ isAdmin }),
 
   hasOnboarded: false,
   completeOnboarding: () => set({ hasOnboarded: true }),

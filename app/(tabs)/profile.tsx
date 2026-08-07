@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Switch,
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
@@ -20,6 +21,7 @@ import {
   FileTextIcon,
   SignOutIcon,
   CaretRightIcon,
+  ShieldCheckIcon,
   type IconProps,
 } from 'phosphor-react-native';
 import { useAppStore } from '@/store';
@@ -82,6 +84,32 @@ function SettingsRow({ icon: Icon, label, value, onPress, danger, iconBg, iconCo
   );
 }
 
+function SwitchRow({ icon: Icon, label, value, onValueChange, iconBg, iconColor, dyn, t }: {
+  icon: React.ComponentType<IconProps>;
+  label: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+  iconBg?: string;
+  iconColor?: string;
+  dyn: ReturnType<typeof StyleSheet.create>;
+  t: ReturnType<typeof useThemeColors>;
+}) {
+  return (
+    <View style={styles.settingsRow}>
+      <View style={[styles.settingsIcon, { backgroundColor: iconBg ?? t.surfaceAlt }]}>
+        <Icon size={17} color={iconColor ?? t.textSecondary} />
+      </View>
+      <Text style={[styles.settingsLabel, dyn.settingsLabel]}>{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: t.border, true: colors.amber[400] }}
+        thumbColor={colors.white}
+      />
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const user = useAppStore(s => s.user);
@@ -92,6 +120,8 @@ export default function ProfileScreen() {
   const setColorScheme = useAppStore(s => s.setColorScheme);
   const setUserLocation = useAppStore(s => s.setUserLocation);
   const setUserCurrency = useAppStore(s => s.setUserCurrency);
+  const isAdmin = useAppStore(s => s.isAdmin);
+  const setIsAdmin = useAppStore(s => s.setIsAdmin);
   const signOut = useAppStore(s => s.signOut);
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
@@ -263,20 +293,35 @@ export default function ProfileScreen() {
             value={colorScheme.charAt(0).toUpperCase() + colorScheme.slice(1)}
             onPress={() => appearanceSheet.current?.present()}
           />
+          <View style={[styles.divider, dyn.divider]} />
+          <SwitchRow
+            dyn={dyn}
+            t={t}
+            icon={ShieldCheckIcon}
+            label="Admin access"
+            value={isAdmin}
+            onValueChange={setIsAdmin}
+            iconBg={colors.amber[50]}
+            iconColor={colors.amber[600]}
+          />
         </View>
 
         {/* Business group */}
         <View style={[styles.group, dyn.group]}>
-          <SettingsRow
-            dyn={dyn}
-            t={t}
-            icon={StorefrontIcon}
-            label="Manage vendors"
-            iconBg={colors.navy[50]}
-            iconColor={colors.navy[600]}
-            onPress={() => router.push('/admin')}
-          />
-          <View style={[styles.divider, dyn.divider]} />
+          {isAdmin && (
+            <>
+              <SettingsRow
+                dyn={dyn}
+                t={t}
+                icon={StorefrontIcon}
+                label="Manage vendors"
+                iconBg={colors.navy[50]}
+                iconColor={colors.navy[600]}
+                onPress={() => router.push('/admin')}
+              />
+              <View style={[styles.divider, dyn.divider]} />
+            </>
+          )}
           <SettingsRow
             dyn={dyn}
             t={t}

@@ -13,9 +13,11 @@ import { router } from 'expo-router';
 import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeftIcon, UserIcon, BuildingsIcon, PhoneIcon, EnvelopeSimpleIcon, LockIcon } from 'phosphor-react-native';
+import { showMessage } from 'react-native-flash-message';
 import { colors, radii, typography } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { authApi } from '@/api';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -43,11 +45,26 @@ export default function RegisterScreen() {
   const set = (key: string) => (val: string) => setForm(f => ({ ...f, [key]: val }));
 
   const handleRegister = async () => {
+    if (!form.name.trim() || !form.email.trim() || !form.password) {
+      showMessage({ message: 'Fill in your name, email, and password', type: 'warning' });
+      return;
+    }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 900));
-    setLoading(false);
-    signIn();
-    router.replace('/(tabs)');
+    try {
+      const user = await authApi.register({
+        name: form.name.trim(),
+        businessName: form.businessName.trim() || undefined,
+        phone: form.phone.trim() || undefined,
+        email: form.email.trim(),
+        password: form.password,
+      });
+      signIn(user);
+      router.replace('/(tabs)');
+    } catch (err) {
+      showMessage({ message: err instanceof Error ? err.message : 'Registration failed', type: 'danger' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

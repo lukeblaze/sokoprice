@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, useColorScheme as useSystemColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
@@ -24,6 +24,7 @@ import { Anton_400Regular } from '@expo-google-fonts/anton';
 import { lightTheme, darkTheme } from '@/theme';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/store';
+import { authApi } from '@/api';
 import { CommandPalette } from '@/components/common/CommandPalette';
 
 SplashScreen.preventAutoHideAsync();
@@ -51,13 +52,36 @@ export default function RootLayout() {
   const systemScheme = useSystemColorScheme();
   const isDark = colorScheme === 'system' ? systemScheme === 'dark' : colorScheme === 'dark';
 
+  const signIn = useAppStore(s => s.signIn);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  // Runs once per app load (including a plain browser refresh on any
+  // route, not just "/") — Zustand's in-memory store resets on every
+  // page load, so a stored JWT is the only thing that survives a reload.
   useEffect(() => {
-    if (fontsLoaded) {
+    let cancelled = false;
+    (async () => {
+      if (await authApi.hasStoredSession()) {
+        try {
+          const user = await authApi.getMe();
+          if (!cancelled) signIn(user);
+        } catch {
+          // Invalid/expired token and refresh already failed — proceed
+          // as a signed-out session.
+        }
+      }
+      if (!cancelled) setSessionChecked(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded && sessionChecked) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, sessionChecked]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || !sessionChecked) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

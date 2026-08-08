@@ -13,9 +13,11 @@ import { router } from 'expo-router';
 import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EnvelopeSimpleIcon, LockIcon, EyeIcon, EyeSlashIcon } from 'phosphor-react-native';
+import { showMessage } from 'react-native-flash-message';
 import { colors, radii, typography } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { authApi } from '@/api';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -34,7 +36,6 @@ export default function LoginScreen() {
     dividerText: { color: t.textMuted },
     registerBtn: { borderColor: t.border },
     registerBtnText: { color: t.textPrimary },
-    skipText: { color: t.textMuted },
   }), [t]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,12 +43,20 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      showMessage({ message: 'Enter your email and password', type: 'warning' });
+      return;
+    }
     setLoading(true);
-    // Simulate auth — replace with real API call
-    await new Promise(r => setTimeout(r, 800));
-    setLoading(false);
-    signIn();
-    router.replace('/(tabs)');
+    try {
+      const user = await authApi.login(email.trim(), password);
+      signIn(user);
+      router.replace('/(tabs)');
+    } catch (err) {
+      showMessage({ message: err instanceof Error ? err.message : 'Sign in failed', type: 'danger' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -142,11 +151,6 @@ export default function LoginScreen() {
             <Text style={[styles.registerBtnText, dyn.registerBtnText]}>Create a business account</Text>
           </Pressable>
         </View>
-
-        {/* Skip for demo */}
-        <Pressable onPress={() => { signIn(); router.replace('/(tabs)'); }} style={styles.skipBtn}>
-          <Text style={[styles.skipText, dyn.skipText]}>Continue as guest →</Text>
-        </Pressable>
       </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -285,13 +289,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     fontWeight: '500',
     color: colors.navy[800],
-  },
-  skipBtn: {
-    alignItems: 'center',
-    paddingTop: 28,
-  },
-  skipText: {
-    fontSize: typography.sizes.sm,
-    color: 'rgba(255,255,255,0.4)',
   },
 });

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { MOCK_VENDORS } from '@/utils/mockData';
-import type { Product, Vendor, VendorListing, PriceTrend, MarketSummary, TickerItem } from '@/types';
+import { tokenStorage } from '@/utils/tokenStorage';
+import type { Product, Vendor, VendorListing, PriceTrend, MarketSummary, TickerItem, UserProfile } from '@/types';
 
 // Fields an admin fills in when adding/editing a vendor — the rest
 // (id, initials, rating, reviewCount, productCount, joinedDate) are
@@ -34,20 +35,61 @@ const api = axios.create({
   },
 });
 
+const ACCESS_TOKEN_KEY = 'sokoprice_access_token';
+const REFRESH_TOKEN_KEY = 'sokoprice_refresh_token';
+
+// Requests to these endpoints never get an auto-refresh-and-retry — a 401
+// here means "bad credentials" or "already invalid", not "expired session".
+const AUTH_ENDPOINTS = ['/auth/login/', '/auth/register/', '/auth/refresh/'];
+
 // Request interceptor — attach auth token
-api.interceptors.request.use(config => {
-  // Token will come from SecureStore in production
-  // const token = SecureStore.getItemAsync('auth_token');
-  // if (token) config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(async config => {
+  const token = await tokenStorage.getItem(ACCESS_TOKEN_KEY);
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Response interceptor — normalize errors
+// Extracts a human-readable message from a DRF error response — plain
+// {detail} for auth failures, or the first field's first validation
+// message for {field: [messages]} shaped 400s (e.g. register's
+// "email: this account already exists").
+function extractErrorMessage(err: any): string {
+  const data = err.response?.data;
+  if (typeof data === 'string' && data) return data;
+  if (data?.detail) return data.detail;
+  if (data?.message) return data.message;
+  if (data && typeof data === 'object') {
+    const firstValue = Object.values(data)[0];
+    const text = Array.isArray(firstValue) ? firstValue[0] : firstValue;
+    if (typeof text === 'string') return text;
+  }
+  return err.message ?? 'Network error';
+}
+
+// Response interceptor — silent refresh-and-retry on 401, then normalize errors
 api.interceptors.response.use(
   res => res,
-  err => {
-    const message = err.response?.data?.message ?? err.message ?? 'Network error';
-    return Promise.reject(new Error(message));
+  async err => {
+    const originalRequest = err.config;
+    const isAuthEndpoint = AUTH_ENDPOINTS.some(p => originalRequest?.url?.includes(p));
+
+    if (err.response?.status === 401 && !originalRequest?._retry && !isAuthEndpoint) {
+      originalRequest._retry = true;
+      const refreshToken = await tokenStorage.getItem(REFRESH_TOKEN_KEY);
+      if (refreshToken) {
+        try {
+          const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh/`, { refresh: refreshToken });
+          await tokenStorage.setItem(ACCESS_TOKEN_KEY, data.access);
+          originalRequest.headers.Authorization = `Bearer ${data.access}`;
+          return api(originalRequest);
+        } catch {
+          await tokenStorage.removeItem(ACCESS_TOKEN_KEY);
+          await tokenStorage.removeItem(REFRESH_TOKEN_KEY);
+        }
+      }
+    }
+
+    return Promise.reject(new Error(extractErrorMessage(err)));
   }
 );
 
@@ -165,6 +207,71 @@ export const marketApi = {
   getTicker: async (): Promise<TickerItem[]> => {
     const { data } = await api.get<TickerItem[]>('/market/ticker/');
     return data;
+  },
+};
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export interface RegisterInput {
+  name: string;
+  businessName?: string;
+  phone?: string;
+  email: string;
+  password: string;
+}
+
+interface AuthTokens {
+  access: string;
+  refresh: string;
+}
+
+interface AuthResponse extends AuthTokens {
+  user: UserProfile;
+}
+
+async function persistTokens(tokens: AuthTokens): Promise<void> {
+  await tokenStorage.setItem(ACCESS_TOKEN_KEY, tokens.access);
+  await tokenStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh);
+}
+
+export const authApi = {
+  register: async (input: RegisterInput): Promise<UserProfile> => {
+    const { data } = await api.post<AuthResponse>('/auth/register/', input);
+    await persistTokens(data);
+    return data.user;
+  },
+
+  login: async (email: string, password: string): Promise<UserProfile> => {
+    const { data } = await api.post<AuthResponse>('/auth/login/', { email, password });
+    await persistTokens(data);
+    return data.user;
+  },
+
+  logout: async (): Promise<void> => {
+    const refresh = await tokenStorage.getItem(REFRESH_TOKEN_KEY);
+    if (refresh) {
+      // Best-effort — the tokens are cleared locally regardless of whether
+      // the server-side blacklist call succeeds (e.g. already expired).
+      await api.post('/auth/logout/', { refresh }).catch(() => {});
+    }
+    await tokenStorage.removeItem(ACCESS_TOKEN_KEY);
+    await tokenStorage.removeItem(REFRESH_TOKEN_KEY);
+  },
+
+  getMe: async (): Promise<UserProfile> => {
+    const { data } = await api.get<UserProfile>('/auth/me/');
+    return data;
+  },
+
+  updateMe: async (
+    patch: Partial<Pick<UserProfile, 'businessName' | 'phone' | 'location' | 'currency'>>
+  ): Promise<UserProfile> => {
+    const { data } = await api.patch<UserProfile>('/auth/me/', patch);
+    return data;
+  },
+
+  hasStoredSession: async (): Promise<boolean> => {
+    return !!(await tokenStorage.getItem(ACCESS_TOKEN_KEY));
   },
 };
 

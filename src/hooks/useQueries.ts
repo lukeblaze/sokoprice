@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productsApi, vendorsApi, marketApi, type VendorInput } from '@/api';
+import { productsApi, vendorsApi, marketApi, authApi, type VendorInput } from '@/api';
+import { useAppStore } from '@/store';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -19,6 +20,9 @@ export const queryKeys = {
   market: {
     summary: () => ['market', 'summary'] as const,
     ticker: () => ['market', 'ticker'] as const,
+  },
+  auth: {
+    me: () => ['auth', 'me'] as const,
   },
 };
 
@@ -143,5 +147,34 @@ export function useMarketTicker() {
     queryFn: marketApi.getTicker,
     staleTime: 1000 * 60,
     refetchInterval: 1000 * 60 * 3,
+  });
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export function useMe() {
+  const isAuthenticated = useAppStore(s => s.isAuthenticated);
+  const signIn = useAppStore(s => s.signIn);
+  return useQuery({
+    queryKey: queryKeys.auth.me(),
+    queryFn: async () => {
+      const user = await authApi.getMe();
+      signIn(user); // keep the store's copy in sync (role, counts, etc.)
+      return user;
+    },
+    staleTime: 1000 * 60,
+    enabled: isAuthenticated,
+  });
+}
+
+export function useUpdateMe() {
+  const queryClient = useQueryClient();
+  const signIn = useAppStore(s => s.signIn);
+  return useMutation({
+    mutationFn: authApi.updateMe,
+    onSuccess: (user) => {
+      signIn(user);
+      queryClient.setQueryData(queryKeys.auth.me(), user);
+    },
   });
 }

@@ -34,6 +34,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { authApi } from '@/api';
 
 const NAIROBI_AREAS = ['Nairobi CBD', 'Westlands', 'Kilimani', 'Upper Hill', 'Ngara', 'Kileleshwa'];
 const CURRENCIES = [
@@ -189,7 +190,8 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await authApi.logout();
     signOut();
     showMessage({ message: 'Signed out', type: 'info' });
     router.replace('/(auth)/login');

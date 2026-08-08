@@ -7,7 +7,7 @@ interface AppState {
   // Auth
   isAuthenticated: boolean;
   user: UserProfile | null;
-  signIn: () => void;
+  signIn: (user: UserProfile) => void;
   signOut: () => void;
 
   // Admin — gates /admin/* routes. Real auth would derive this from the
@@ -64,24 +64,12 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Auth
-  isAuthenticated: true, // mock — always logged in for prototype
-  user: {
-    id: 'user-001',
-    name: 'Blaze Murimi',
-    businessName: 'Blaze Solutions Ltd',
-    email: 'blaze@blazesolutions.co.ke',
-    phone: '+254 700 000 000',
-    location: 'Nairobi, Kenya',
-    currency: 'KES',
-    plan: 'business',
-    watchlistCount: 3,
-    alertCount: 2,
-    savedVendorCount: 1,
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-  signIn: () => set({ isAuthenticated: true }),
+  isAuthenticated: false,
+  user: null,
+  signIn: (user) => set({ isAuthenticated: true, user }),
   signOut: () => set(s => ({
     isAuthenticated: false,
+    user: null,
     watchlistIds: new Set(),
     savedVendorIds: new Set(),
   })),

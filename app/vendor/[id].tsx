@@ -26,7 +26,7 @@ import {
   type IconProps,
 } from 'phosphor-react-native';
 import { showMessage } from 'react-native-flash-message';
-import * as Haptics from 'expo-haptics';
+import { impactLight } from '@/utils/haptics';
 import { useVendor } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
@@ -112,7 +112,7 @@ export default function VendorDetailScreen() {
   }), [t]);
 
   const handleSave = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await impactLight();
     toggleSavedVendor(id);
     showMessage({
       message: isSaved ? 'Removed from saved vendors' : 'Vendor saved',
@@ -307,7 +307,7 @@ export default function VendorDetailScreen() {
       ) : (
         <>
           <View style={[styles.vendorHero, dyn.hero]}>{heroContent}</View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <ScrollView style={styles.mobileScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {mainSections}
             <View style={{ height: insets.bottom + 24 }} />
           </ScrollView>
@@ -388,6 +388,9 @@ const styles = StyleSheet.create({
   heroReviews: {
     fontSize: typography.sizes.xs,
     color: 'rgba(255,255,255,0.4)',
+  },
+  mobileScroll: {
+    flex: 1,
   },
   scrollContent: {
     paddingTop: 20,

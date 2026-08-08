@@ -203,7 +203,7 @@ export default function ProfileScreen() {
         <title>Your Profile — SokoPrice</title>
         <meta name="description" content="Manage your account, preferences, and business details." />
       </Head>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Hero */}
         <View style={[styles.hero, dyn.hero]}>
           <View style={styles.bigAvatar}>
@@ -404,6 +404,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.gray[50],
+  },
+  scrollView: {
+    flex: 1,
   },
   scroll: {
     paddingBottom: 32,

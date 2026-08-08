@@ -69,6 +69,7 @@ export default function LoginScreen() {
         <meta name="description" content="Sign in to SokoPrice to track prices and manage your vendor watchlist." />
       </Head>
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -161,6 +162,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.navy[800],
+  },
+  scrollView: {
+    flex: 1,
   },
   scroll: {
     flexGrow: 1,

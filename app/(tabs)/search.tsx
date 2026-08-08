@@ -221,6 +221,7 @@ export default function SearchScreen() {
         <ResponsiveContainer>
           <FlatList
             key={numColumns}
+            style={styles.list}
             data={results}
             keyExtractor={item => item.id}
             numColumns={numColumns}
@@ -382,6 +383,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     color: colors.navy[800],
     fontWeight: '500',
+  },
+  list: {
+    flex: 1,
   },
   listContent: {
     paddingTop: 8,

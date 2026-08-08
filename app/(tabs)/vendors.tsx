@@ -113,11 +113,12 @@ export default function VendorsScreen() {
         <ResponsiveContainer>
           <FlatList
             key={numColumns}
+            style={styles.list}
             data={vendors}
             keyExtractor={item => item.id}
             numColumns={numColumns}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={styles.listContent}
             columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
             ListHeaderComponent={
               <Text style={[styles.count, dyn.count]}>
@@ -189,6 +190,9 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   list: {
+    flex: 1,
+  },
+  listContent: {
     paddingTop: 16,
     paddingBottom: 24,
   },

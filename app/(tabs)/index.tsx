@@ -120,6 +120,7 @@ export default function HomeScreen() {
 
       {/* Main scroll */}
       <ScrollView
+        style={styles.mainScroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -359,6 +360,9 @@ const styles = StyleSheet.create({
   searchPlaceholder: {
     fontSize: typography.sizes.base,
     color: 'rgba(255,255,255,0.45)',
+  },
+  mainScroll: {
+    flex: 1,
   },
   scrollContent: {
     paddingTop: 16,

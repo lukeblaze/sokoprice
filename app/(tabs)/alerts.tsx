@@ -104,6 +104,7 @@ export default function AlertsScreen() {
       </View>
 
       <FlatList
+        style={styles.scrollView}
         data={['alerts', 'notifications'] as const}
         keyExtractor={k => k}
         showsVerticalScrollIndicator={false}
@@ -214,6 +215,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.amber[600],
     fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
   },
   scroll: {
     paddingTop: 16,

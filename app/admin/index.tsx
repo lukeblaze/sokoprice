@@ -166,6 +166,7 @@ export default function AdminVendorsScreen() {
       ) : (
         <ResponsiveContainer>
           <FlatList
+            style={styles.listView}
             data={filtered}
             keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
@@ -237,6 +238,9 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: typography.sizes.base,
+  },
+  listView: {
+    flex: 1,
   },
   list: {
     paddingHorizontal: 20,

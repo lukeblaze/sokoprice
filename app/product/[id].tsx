@@ -23,7 +23,7 @@ import {
   BellIcon,
 } from 'phosphor-react-native';
 import { showMessage } from 'react-native-flash-message';
-import * as Haptics from 'expo-haptics';
+import { impactLight } from '@/utils/haptics';
 import { useProduct, useProductTrend, useVendorListings } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, typography, shadows } from '@/theme/tokens';
@@ -109,7 +109,7 @@ export default function ProductDetailScreen() {
   }), [t]);
 
   const handleWatchlist = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await impactLight();
     toggleWatchlist(id);
     showMessage({
       message: watchlisted ? 'Removed from watchlist' : 'Added to watchlist',
@@ -370,7 +370,7 @@ export default function ProductDetailScreen() {
       ) : (
         <>
           <View style={[styles.productHero, dyn.hero]}>{heroContent}</View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <ScrollView style={styles.mobileScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {mainSections}
             <View style={{ height: insets.bottom + 24 }} />
           </ScrollView>
@@ -481,6 +481,9 @@ const styles = StyleSheet.create({
   metaDot: {
     fontSize: typography.sizes.xs,
     color: 'rgba(255,255,255,0.2)',
+  },
+  mobileScroll: {
+    flex: 1,
   },
   scrollContent: {
     paddingTop: 20,

@@ -77,6 +77,7 @@ export default function RegisterScreen() {
         <meta name="description" content="Create a free SokoPrice account to start comparing vendor prices in Nairobi." />
       </Head>
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -144,6 +145,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.navy[800],
+  },
+  scrollView: {
+    flex: 1,
   },
   scroll: {
     flexGrow: 1,

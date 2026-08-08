@@ -182,7 +182,7 @@ export default function VendorFormScreen() {
         <title>{isEdit ? 'Edit Vendor' : 'Add Vendor'} — SokoPrice Admin</title>
         <meta name="description" content="Add or edit a vendor listing on SokoPrice." />
       </Head>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.centerCol}>
           <Pressable onPress={() => router.back()} style={[styles.back, dyn.back]}>
             <ArrowLeftIcon size={20} color={t.textPrimary} />
@@ -279,6 +279,9 @@ export default function VendorFormScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  scrollView: {
+    flex: 1,
+  },
   scroll: {
     flexGrow: 1,
     alignItems: 'center',

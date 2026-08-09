@@ -31,7 +31,6 @@ import { TagChip, VendorBadgeChip, LoadingSpinner } from '@/components/common';
 import { formatKES, formatPriceChange, pricePercentage, formatShortDate } from '@/utils/format';
 import { useSkiaWebReady } from '@/utils/skiaWeb';
 import { useBreakpoint } from '@/hooks/useResponsive';
-import { ResponsiveContainer } from '@/components/common/ResponsiveContainer';
 import { usePressScale } from '@/hooks/usePressScale';
 import { useMagnetic } from '@/hooks/useMagnetic';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -354,7 +353,7 @@ export default function ProductDetailScreen() {
       </View>
 
       {isDesktop ? (
-        <ResponsiveContainer>
+        <View style={styles.desktopOuter}>
           <View style={styles.desktopRow}>
             <View style={[styles.desktopHeroPane, dyn.hero]}>{heroContent}</View>
             <ScrollView
@@ -366,7 +365,7 @@ export default function ProductDetailScreen() {
               <View style={{ height: insets.bottom + 24 }} />
             </ScrollView>
           </View>
-        </ResponsiveContainer>
+        </View>
       ) : (
         <>
           <View style={[styles.productHero, dyn.hero]}>{heroContent}</View>
@@ -489,8 +488,20 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingHorizontal: 20,
   },
+  // Replicates ResponsiveContainer's centering (width:'100%', max 1200,
+  // centered) inline instead of using the shared component — that
+  // component has no flex:1 in its own tree (by design, since it's also
+  // used inside ScrollView content elsewhere), so wrapping this row in it
+  // would leave the row's height undefined and the ScrollView unscrollable.
+  desktopOuter: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+  },
   desktopRow: {
     flex: 1,
+    width: '100%',
+    maxWidth: 1200,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 24,
@@ -508,6 +519,13 @@ const styles = StyleSheet.create({
   },
   desktopContentPane: {
     flex: 1,
+    // desktopRow uses alignItems:'flex-start' so the sticky hero pane sizes
+    // to its own content instead of stretching — but that also means this
+    // ScrollView never gets a bounded height from flex:1 alone (flex:1 in a
+    // row only governs width). alignSelf:'stretch' overrides the row's
+    // cross-axis alignment for this child only, giving it the full row
+    // height so scroll overflow can actually be computed.
+    alignSelf: 'stretch',
   },
   section: {
     marginBottom: 20,

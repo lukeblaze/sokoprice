@@ -1,14 +1,17 @@
 import React from 'react';
 import { Stack, Redirect } from 'expo-router';
-import { useAppStore } from '@/store';
+import { useMe } from '@/hooks/useQueries';
+import { LoadingSpinner } from '@/components/common';
 
 export default function AdminLayout() {
-  const isAdmin = useAppStore(s => s.isAdmin);
+  const { data: user, isLoading } = useMe();
 
-  // Real auth would derive this server-side; here it's a mock flag
-  // (Profile > Preferences > Admin access) so the route is only
-  // reachable when it's actually meant to be.
-  if (!isAdmin) {
+  // Wait for the real role to resolve before deciding — redirecting
+  // while `user` is merely still loading would bounce a legitimate
+  // admin out before their role is known.
+  if (isLoading) return <LoadingSpinner />;
+
+  if (user?.role !== 'admin') {
     return <Redirect href="/(tabs)/profile" />;
   }
 

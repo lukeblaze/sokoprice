@@ -12,7 +12,6 @@ import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SlidersHorizontalIcon, MagnifyingGlassIcon, XCircleIcon } from 'phosphor-react-native';
 import { useVendors, useVendorSearch } from '@/hooks/useQueries';
-import { useAppStore } from '@/store';
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorCard } from '@/components/vendors/VendorCard';
 import { LoadingSpinner, EmptyState, VendorCardSkeleton } from '@/components/common';
@@ -38,13 +37,14 @@ export default function VendorsScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isSavedMode = mode === 'saved';
   const [query, setQuery] = useState('');
-  const savedVendorIds = useAppStore(s => s.savedVendorIds);
 
   const { data: allVendors, isLoading } = useVendors();
   const { data: searchResults } = useVendorSearch(query);
 
+  // isFavorited is computed server-side per-vendor from the real
+  // SavedVendor table — no separate saved-vendors fetch needed here.
   const vendors = isSavedMode
-    ? allVendors?.filter(v => savedVendorIds.has(v.id))
+    ? allVendors?.filter(v => v.isFavorited)
     : query.trim() ? searchResults : allVendors;
 
   return (

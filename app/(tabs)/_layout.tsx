@@ -4,7 +4,7 @@ import { Text } from '@/components/common/Text';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii } from '@/theme/tokens';
-import { useAppStore } from '@/store';
+import { useNotifications } from '@/hooks/useQueries';
 import { useBreakpoint } from '@/hooks/useResponsive';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { TAB_ROUTE_ICONS } from '@/components/navigation/tabConfig';
@@ -39,7 +39,8 @@ function TabIcon({
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  const unreadCount = useAppStore(s => s.unreadCount);
+  const { data: notificationsData } = useNotifications();
+  const unreadCount = notificationsData?.unreadCount ?? 0;
   const { isDesktop } = useBreakpoint();
   const t = useThemeColors();
 

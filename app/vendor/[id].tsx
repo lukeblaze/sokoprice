@@ -27,8 +27,7 @@ import {
 } from 'phosphor-react-native';
 import { showMessage } from 'react-native-flash-message';
 import { impactLight } from '@/utils/haptics';
-import { useVendor } from '@/hooks/useQueries';
-import { useAppStore } from '@/store';
+import { useVendor, useToggleSavedVendor } from '@/hooks/useQueries';
 import { colors, radii, typography } from '@/theme/tokens';
 import { VendorAvatar, VendorBadgeChip, LoadingSpinner } from '@/components/common';
 import { useBreakpoint } from '@/hooks/useResponsive';
@@ -80,8 +79,8 @@ export default function VendorDetailScreen() {
   const { isDesktop } = useBreakpoint();
 
   const { data: vendor, isLoading } = useVendor(id);
-  const toggleSavedVendor = useAppStore(s => s.toggleSavedVendor);
-  const isSaved = useAppStore(s => s.isSavedVendor(id));
+  const toggleSavedVendor = useToggleSavedVendor();
+  const isSaved = vendor?.isFavorited ?? false;
   const ctaPress = usePressScale();
   const ctaMagnetic = useMagnetic();
   const t = useThemeColors();
@@ -112,11 +111,16 @@ export default function VendorDetailScreen() {
 
   const handleSave = async () => {
     await impactLight();
-    toggleSavedVendor(id);
-    showMessage({
-      message: isSaved ? 'Removed from saved vendors' : 'Vendor saved',
-      type: isSaved ? 'info' : 'success',
-    });
+    const wasSaved = isSaved;
+    try {
+      await toggleSavedVendor.mutateAsync({ vendorId: id, isSaved: wasSaved });
+      showMessage({
+        message: wasSaved ? 'Removed from saved vendors' : 'Vendor saved',
+        type: wasSaved ? 'info' : 'success',
+      });
+    } catch (err) {
+      showMessage({ message: err instanceof Error ? err.message : 'Could not update saved vendors', type: 'danger' });
+    }
   };
 
   if (isLoading || !vendor) {

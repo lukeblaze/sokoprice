@@ -20,3 +20,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8081',
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# Prints password-reset emails to the runserver console instead of
+# actually sending — no real email credentials needed for local dev.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

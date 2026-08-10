@@ -1,18 +1,27 @@
 from django.db.models import Q
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from accounts.permissions import IsAdminRole
+
 from .models import Vendor
-from .serializers import VendorSerializer
+from .serializers import VendorSerializer, VendorWriteSerializer
 
 
-class VendorViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only for Phase 2 — create/update/delete (the admin panel's
-    vendor CRUD) land in Phase 4 once IsAdminRole permission exists."""
-
+class VendorViewSet(viewsets.ModelViewSet):
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return VendorWriteSerializer
+        return VendorSerializer
+
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsAdminRole()]
+        return [permissions.AllowAny()]
 
     @action(detail=False, methods=['get'])
     def search(self, request):

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productsApi, vendorsApi, marketApi, authApi, type VendorInput } from '@/api';
+import { productsApi, vendorsApi, marketApi, authApi, engagementApi, type VendorInput, type CreateAlertInput } from '@/api';
 import { useAppStore } from '@/store';
+import type { PriceAlert } from '@/types';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -23,6 +24,12 @@ export const queryKeys = {
   },
   auth: {
     me: () => ['auth', 'me'] as const,
+  },
+  engagement: {
+    watchlist: () => ['watchlist'] as const,
+    savedVendors: () => ['saved-vendors'] as const,
+    alerts: () => ['alerts'] as const,
+    notifications: () => ['notifications'] as const,
   },
 };
 
@@ -175,6 +182,130 @@ export function useUpdateMe() {
     onSuccess: (user) => {
       signIn(user);
       queryClient.setQueryData(queryKeys.auth.me(), user);
+    },
+  });
+}
+
+// ─── Watchlist ────────────────────────────────────────────────────────────────
+
+export function useWatchlist() {
+  const isAuthenticated = useAppStore(s => s.isAuthenticated);
+  return useQuery({
+    queryKey: queryKeys.engagement.watchlist(),
+    queryFn: engagementApi.getWatchlist,
+    staleTime: 1000 * 30,
+    enabled: isAuthenticated,
+  });
+}
+
+export function useToggleWatchlist() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, isWatchlisted }: { productId: string; isWatchlisted: boolean }) =>
+      isWatchlisted ? engagementApi.removeFromWatchlist(productId) : engagementApi.addToWatchlist(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engagement.watchlist() });
+      // isFavorited is embedded in every Product response — refetch those too.
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}
+
+// ─── Saved vendors ──────────────────────────────────────────────────────────────
+
+export function useSavedVendors() {
+  const isAuthenticated = useAppStore(s => s.isAuthenticated);
+  return useQuery({
+    queryKey: queryKeys.engagement.savedVendors(),
+    queryFn: engagementApi.getSavedVendors,
+    staleTime: 1000 * 30,
+    enabled: isAuthenticated,
+  });
+}
+
+export function useToggleSavedVendor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ vendorId, isSaved }: { vendorId: string; isSaved: boolean }) =>
+      isSaved ? engagementApi.unsaveVendor(vendorId) : engagementApi.saveVendor(vendorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engagement.savedVendors() });
+      queryClient.invalidateQueries({ queryKey: ['vendors'] });
+    },
+  });
+}
+
+// ─── Price alerts ─────────────────────────────────────────────────────────────
+
+export function useAlerts() {
+  const isAuthenticated = useAppStore(s => s.isAuthenticated);
+  return useQuery({
+    queryKey: queryKeys.engagement.alerts(),
+    queryFn: engagementApi.getAlerts,
+    staleTime: 1000 * 30,
+    enabled: isAuthenticated,
+  });
+}
+
+function invalidateAlertsAndProducts(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.engagement.alerts() });
+  // hasAlert/alertPrice are embedded in every Product response.
+  queryClient.invalidateQueries({ queryKey: ['products'] });
+}
+
+export function useCreateAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateAlertInput) => engagementApi.createAlert(input),
+    onSuccess: () => invalidateAlertsAndProducts(queryClient),
+  });
+}
+
+export function useUpdateAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Pick<PriceAlert, 'isActive' | 'targetPrice'>> }) =>
+      engagementApi.updateAlert(id, patch),
+    onSuccess: () => invalidateAlertsAndProducts(queryClient),
+  });
+}
+
+export function useDeleteAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => engagementApi.deleteAlert(id),
+    onSuccess: () => invalidateAlertsAndProducts(queryClient),
+  });
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export function useNotifications() {
+  const isAuthenticated = useAppStore(s => s.isAuthenticated);
+  return useQuery({
+    queryKey: queryKeys.engagement.notifications(),
+    queryFn: engagementApi.getNotifications,
+    staleTime: 1000 * 15,
+    enabled: isAuthenticated,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => engagementApi.markNotificationRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engagement.notifications() });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: engagementApi.markAllNotificationsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.engagement.notifications() });
     },
   });
 }

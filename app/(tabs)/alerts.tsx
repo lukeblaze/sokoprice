@@ -20,7 +20,14 @@ import {
   TrashIcon,
   type IconProps,
 } from 'phosphor-react-native';
-import { useAppStore } from '@/store';
+import {
+  useAlerts,
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  useUpdateAlert,
+  useDeleteAlert,
+} from '@/hooks/useQueries';
 import { colors, radii, typography } from '@/theme/tokens';
 import { formatKES, formatRelativeTime } from '@/utils/format';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -62,13 +69,19 @@ function NotifRow({ notif, onPress, dyn }: {
 
 export default function AlertsScreen() {
   const insets = useSafeAreaInsets();
-  const notifications = useAppStore(s => s.notifications);
-  const alerts = useAppStore(s => s.alerts);
-  const unreadCount = useAppStore(s => s.unreadCount);
-  const markRead = useAppStore(s => s.markNotificationRead);
-  const markAllRead = useAppStore(s => s.markAllRead);
-  const toggleAlert = useAppStore(s => s.toggleAlert);
-  const removeAlert = useAppStore(s => s.removeAlert);
+  const { data: alerts = [] } = useAlerts();
+  const { data: notificationsData } = useNotifications();
+  const notifications = notificationsData?.results ?? [];
+  const unreadCount = notificationsData?.unreadCount ?? 0;
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+  const updateAlertMutation = useUpdateAlert();
+  const deleteAlertMutation = useDeleteAlert();
+  const markRead = (id: string) => markReadMutation.mutate(id);
+  const markAllRead = () => markAllReadMutation.mutate();
+  const toggleAlert = (alert: (typeof alerts)[number]) =>
+    updateAlertMutation.mutate({ id: alert.id, patch: { isActive: !alert.isActive } });
+  const removeAlert = (id: string) => deleteAlertMutation.mutate(id);
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
@@ -142,7 +155,7 @@ export default function AlertsScreen() {
                         <View style={styles.alertRight}>
                           <Switch
                             value={alert.isActive}
-                            onValueChange={() => toggleAlert(alert.id)}
+                            onValueChange={() => toggleAlert(alert)}
                             trackColor={{ false: colors.gray[200], true: colors.amber[300] }}
                             thumbColor={alert.isActive ? colors.amber[500] : colors.gray[400]}
                           />

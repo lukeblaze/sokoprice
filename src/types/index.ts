@@ -93,6 +93,7 @@ export interface UserProfile {
   location: string;
   currency: 'KES' | 'USD' | 'EUR';
   plan: 'free' | 'business' | 'enterprise';
+  role: 'user' | 'admin';
   watchlistCount: number;
   alertCount: number;
   savedVendorCount: number;

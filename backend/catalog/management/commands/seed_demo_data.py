@@ -3,6 +3,7 @@ the real database, so the transition from the mock frontend preserves
 familiar demo data. Safe to re-run (get_or_create keyed on the same
 string IDs the mock uses)."""
 
+import os
 import random
 from datetime import date, timedelta
 from decimal import Decimal
@@ -191,14 +192,18 @@ class Command(BaseCommand):
                 'is_superuser': True,
             },
         )
+        # Password is re-synced from the env var on *every* run, not just
+        # creation — build.sh runs this command on every deploy, so
+        # rotating DEMO_ADMIN_PASSWORD on Render and redeploying is the
+        # actual rotation mechanism (the free tier has no Shell access
+        # for a one-off password-reset command).
+        demo_password = os.environ.get('DEMO_ADMIN_PASSWORD', 'sokoprice-demo-2026')
+        admin_user.set_password(demo_password)
+        admin_user.save()
         if created:
-            admin_user.set_password('sokoprice-demo-2026')
-            admin_user.save()
-            self.stdout.write(self.style.SUCCESS(
-                'Created demo admin: demo@sokoprice.co.ke / sokoprice-demo-2026'
-            ))
+            self.stdout.write(self.style.SUCCESS(f'Created demo admin: demo@sokoprice.co.ke / {demo_password}'))
         else:
-            self.stdout.write('Demo admin already exists')
+            self.stdout.write('Demo admin already exists (password synced from env)')
 
         toner = Product.objects.get(id='toner-cf230a')
         laptop = Product.objects.get(id='laptop-hp-840')

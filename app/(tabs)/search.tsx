@@ -63,7 +63,6 @@ export default function SearchScreen() {
   const recentSearches = useAppStore(s => s.recentSearches);
   const addRecentSearch = useAppStore(s => s.addRecentSearch);
   const clearRecentSearches = useAppStore(s => s.clearRecentSearches);
-  const watchlistIds = useAppStore(s => s.watchlistIds);
 
   const { data: searchResults, isLoading: searchLoading } = useProductSearch(
     query,
@@ -71,7 +70,9 @@ export default function SearchScreen() {
   );
   const { data: allProducts, isLoading: allLoading } = useProducts();
 
-  const watchlistResults = allProducts?.filter(p => watchlistIds.has(p.id));
+  // isFavorited is computed server-side per-product from the real
+  // Watchlist table — no separate watchlist fetch needed here.
+  const watchlistResults = allProducts?.filter(p => p.isFavorited);
   const results = isWatchlistMode ? watchlistResults : searchResults;
   const isLoading = isWatchlistMode ? allLoading : searchLoading;
 

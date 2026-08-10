@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BellIcon, MagnifyingGlassIcon, TagIcon } from 'phosphor-react-native';
-import { useMarketSummary, useMarketTicker, useProducts } from '@/hooks/useQueries';
+import { useMarketSummary, useMarketTicker, useNotifications, useProducts } from '@/hooks/useQueries';
 import { useAppStore } from '@/store';
 import { colors, radii, shadows, spacing, typography } from '@/theme/tokens';
 import { PriceTicker } from '@/components/home/PriceTicker';
@@ -48,7 +48,8 @@ export default function HomeScreen() {
     feedPrice: { color: t.textPrimary },
   }), [t]);
   const user = useAppStore(s => s.user);
-  const unreadCount = useAppStore(s => s.unreadCount);
+  const { data: notificationsData } = useNotifications();
+  const unreadCount = notificationsData?.unreadCount ?? 0;
 
   const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useMarketSummary();
   const { data: ticker } = useMarketTicker();

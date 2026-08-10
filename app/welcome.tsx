@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import {
   View,
   Image,
@@ -15,6 +15,15 @@ import { ArrowRightIcon } from 'phosphor-react-native';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { useThemeColors } from '@/hooks/useThemeColors';
+
+// Real interactive 3D scene, web only — module-scope so the lazy
+// component is created once, not re-created (and re-suspended) on
+// every render. Metro resolves this to WelcomeScene.web.tsx only for
+// the web bundle; native resolves the plain WelcomeScene.tsx no-op and
+// never pulls in three.js/react-three-fiber at all.
+const Scene3D = Platform.OS === 'web'
+  ? React.lazy(() => import('@/components/scene3d/WelcomeScene'))
+  : null;
 
 interface Slide {
   src: string;
@@ -206,14 +215,17 @@ export default function WelcomeScreen() {
   const completeOnboarding = useAppStore(s => s.completeOnboarding);
   const t = useThemeColors();
 
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    injectSwayKeyframes();
-    SLIDES.forEach(s => { const img = new (window as any).Image(); img.src = s.src; });
-  }, []);
+  // Gates the 3D scene off during Expo's static-export (SSG) pass —
+  // `document`/WebGL don't exist there, and this effect never runs
+  // during that Node render, only after real browser hydration.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
-  // Fully automatic loop — no manual controls driving the carousel.
+  // Native still shows the 2D carousel (see the JSX below), so it still
+  // needs this auto-loop; web replaced the carousel with the 3D scene,
+  // so there's nothing on web for this to drive.
   useEffect(() => {
+    if (isWeb) return;
     const id = setInterval(() => {
       if (isAnimating.current) return;
       isAnimating.current = true;
@@ -221,7 +233,7 @@ export default function WelcomeScreen() {
       setTimeout(() => { isAnimating.current = false; }, TRANSITION_MS);
     }, LOOP_INTERVAL);
     return () => clearInterval(id);
-  }, []);
+  }, [isWeb]);
 
   const roles: Record<number, Role> = {
     [activeIndex]: 'center',
@@ -232,10 +244,10 @@ export default function WelcomeScreen() {
 
   const slide = SLIDES[activeIndex];
 
-  // With a video background on web, legibility depends on the dark
-  // scrim over it, not the app's light/dark toggle — so text stays a
-  // fixed light palette there. Native has no video (see below), so it
-  // keeps following the app theme like the rest of the site.
+  // Web's background is the fixed navy screenBg below (the 3D scene
+  // renders with a transparent canvas over it), not the app's
+  // light/dark toggle — so text stays a fixed light palette there.
+  // Native keeps following the app theme like the rest of the site.
   const textPrimary = isWeb ? colors.white : t.textPrimary;
   const textSecondary = isWeb ? 'rgba(255,255,255,0.85)' : t.textSecondary;
   const hairlineBorder = isWeb ? 'rgba(255,255,255,0.3)' : t.border;
@@ -253,35 +265,6 @@ export default function WelcomeScreen() {
         <title>SokoPrice — Compare vendor prices in Nairobi</title>
         <meta name="description" content="The fastest way to compare prices across Nairobi vendors, track trends, and never overpay again." />
       </Head>
-
-      {/* Background video — vendors and shoppers using the platform.
-          Web only: RN has no intrinsic <video> element, and native
-          keeps the flat theme-colored background below instead. */}
-      {isWeb && React.createElement('video', {
-        autoPlay: true,
-        muted: true,
-        loop: true,
-        playsInline: true,
-        src: '/welcome-bg.mp4',
-        style: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: 0,
-        },
-      })}
-
-      {/* Scrim over the video so foreground text stays legible */}
-      {isWeb && (
-        <LinearGradient
-          pointerEvents="none"
-          colors={['rgba(4,9,20,0.45)', 'rgba(4,9,20,0.6)']}
-          style={styles.videoScrim}
-        />
-      )}
 
       {/* Grain texture */}
       {Platform.OS === 'web' && (
@@ -318,12 +301,24 @@ export default function WelcomeScreen() {
         <Text style={[styles.signInText, { color: textPrimary }]}>Sign in</Text>
       </Pressable>
 
-      {/* Carousel — auto-looping, no manual nav */}
-      <View style={styles.carousel} pointerEvents="none">
-        {SLIDES.map((s, i) => (
-          <SlideFigure key={s.src} role={roles[i]} src={s.src} aspect={s.aspect} isMobile={isMobile} />
-        ))}
-      </View>
+      {/* Native: auto-looping 2D carousel (unchanged). Web: real
+          interactive 3D scene — pointerEvents left enabled (not
+          'none') since it needs to receive drag input. */}
+      {isWeb ? (
+        mounted && Scene3D && (
+          <View style={styles.carousel}>
+            <Suspense fallback={null}>
+              <Scene3D />
+            </Suspense>
+          </View>
+        )
+      ) : (
+        <View style={styles.carousel} pointerEvents="none">
+          {SLIDES.map((s, i) => (
+            <SlideFigure key={s.src} role={roles[i]} src={s.src} aspect={s.aspect} isMobile={isMobile} />
+          ))}
+        </View>
+      )}
 
       {/* Bottom gradient scrim for text legibility */}
       <LinearGradient
@@ -332,16 +327,29 @@ export default function WelcomeScreen() {
         style={styles.bottomScrim}
       />
 
-      {/* Bottom-left caption + loop progress */}
-      <View style={styles.bottomLeft}>
-        <View style={styles.dotsRow}>
-          {SLIDES.map((_, i) => (
-            <View key={i} style={[styles.dot, { backgroundColor: dotColor }, i === activeIndex && styles.dotActive]} />
-          ))}
+      {/* Bottom-left caption. Native: carousel dots + current slide's
+          title/caption. Web: a single static tagline — there's no
+          carousel state to reflect since the 3D scene replaced it. */}
+      {isWeb ? (
+        <View style={styles.bottomLeft}>
+          <Text style={[styles.slideTitle, { color: textPrimary }]}>DRAG TO EXPLORE</Text>
+          {!isMobile && (
+            <Text style={[styles.slideCaption, { color: textSecondary }]}>
+              Real prices from every vendor in Nairobi — compare, track, and never overpay again.
+            </Text>
+          )}
         </View>
-        <Text style={[styles.slideTitle, { color: textPrimary }]}>{slide.title.toUpperCase()}</Text>
-        {!isMobile && <Text style={[styles.slideCaption, { color: textSecondary }]}>{slide.caption}</Text>}
-      </View>
+      ) : (
+        <View style={styles.bottomLeft}>
+          <View style={styles.dotsRow}>
+            {SLIDES.map((_, i) => (
+              <View key={i} style={[styles.dot, { backgroundColor: dotColor }, i === activeIndex && styles.dotActive]} />
+            ))}
+          </View>
+          <Text style={[styles.slideTitle, { color: textPrimary }]}>{slide.title.toUpperCase()}</Text>
+          {!isMobile && <Text style={[styles.slideCaption, { color: textSecondary }]}>{slide.caption}</Text>}
+        </View>
+      )}
 
       {/* Bottom-right CTA */}
       <Pressable onPress={() => { completeOnboarding(); router.push('/(auth)/register'); }} style={styles.ctaWrap}>

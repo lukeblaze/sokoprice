@@ -1,7 +1,9 @@
 import axios from 'axios';
-import { MOCK_VENDORS } from '@/utils/mockData';
 import { tokenStorage } from '@/utils/tokenStorage';
-import type { Product, Vendor, VendorListing, PriceTrend, MarketSummary, TickerItem, UserProfile } from '@/types';
+import type {
+  Product, Vendor, VendorListing, PriceTrend, MarketSummary, TickerItem, UserProfile,
+  PriceAlert, Notification,
+} from '@/types';
 
 // Fields an admin fills in when adding/editing a vendor — the rest
 // (id, initials, rating, reviewCount, productCount, joinedDate) are
@@ -93,10 +95,6 @@ api.interceptors.response.use(
   }
 );
 
-// ─── Mock delay helper (still used by vendor mutations, Phase 4) ──────────────
-
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 export const productsApi = {
@@ -149,50 +147,17 @@ export const vendorsApi = {
   },
 
   create: async (input: VendorInput): Promise<Vendor> => {
-    await delay(400);
-    const slug = input.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'vendor';
-    const id = `${slug}-${Date.now().toString(36).slice(-5)}`;
-    const initials = input.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'V';
-    const vendor: Vendor = {
-      id,
-      name: input.name,
-      initials,
-      category: input.category,
-      description: input.description ?? '',
-      location: input.location ?? '',
-      area: input.area ?? '',
-      rating: 0,
-      reviewCount: 0,
-      badge: input.badge ?? 'New',
-      productCount: 0,
-      phone: input.phone,
-      email: input.email,
-      whatsapp: input.whatsapp,
-      website: input.website,
-      openingHours: input.openingHours ?? '',
-      isVerified: input.isVerified ?? false,
-      isFavorited: false,
-      colorHex: input.colorHex ?? '#1a3a5c',
-      logoUrl: input.logoUrl,
-      joinedDate: new Date().toISOString().split('T')[0],
-    };
-    MOCK_VENDORS.unshift(vendor);
-    return vendor;
+    const { data } = await api.post<Vendor>('/vendors/', input);
+    return data;
   },
 
   update: async (id: string, patch: Partial<VendorInput>): Promise<Vendor> => {
-    await delay(350);
-    const idx = MOCK_VENDORS.findIndex(v => v.id === id);
-    if (idx === -1) throw new Error('Vendor not found');
-    MOCK_VENDORS[idx] = { ...MOCK_VENDORS[idx], ...patch };
-    return MOCK_VENDORS[idx];
+    const { data } = await api.patch<Vendor>(`/vendors/${id}/`, patch);
+    return data;
   },
 
   remove: async (id: string): Promise<void> => {
-    await delay(300);
-    const idx = MOCK_VENDORS.findIndex(v => v.id === id);
-    if (idx === -1) throw new Error('Vendor not found');
-    MOCK_VENDORS.splice(idx, 1);
+    await api.delete(`/vendors/${id}/`);
   },
 };
 
@@ -272,6 +237,79 @@ export const authApi = {
 
   hasStoredSession: async (): Promise<boolean> => {
     return !!(await tokenStorage.getItem(ACCESS_TOKEN_KEY));
+  },
+
+  requestPasswordReset: async (email: string): Promise<void> => {
+    await api.post('/auth/password-reset/', { email });
+  },
+
+  confirmPasswordReset: async (uid: string, token: string, password: string): Promise<void> => {
+    await api.post('/auth/password-reset/confirm/', { uid, token, password });
+  },
+};
+
+// ─── Engagement (watchlist, saved vendors, price alerts, notifications) ───────
+
+export interface CreateAlertInput {
+  productId: string;
+  targetPrice: number;
+  direction: 'below' | 'above';
+}
+
+export interface NotificationsResponse {
+  results: Notification[];
+  unreadCount: number;
+}
+
+export const engagementApi = {
+  getWatchlist: async (): Promise<string[]> => {
+    const { data } = await api.get<string[]>('/watchlist/');
+    return data;
+  },
+  addToWatchlist: async (productId: string): Promise<void> => {
+    await api.post('/watchlist/', { productId });
+  },
+  removeFromWatchlist: async (productId: string): Promise<void> => {
+    await api.delete(`/watchlist/${productId}/`);
+  },
+
+  getSavedVendors: async (): Promise<string[]> => {
+    const { data } = await api.get<string[]>('/saved-vendors/');
+    return data;
+  },
+  saveVendor: async (vendorId: string): Promise<void> => {
+    await api.post('/saved-vendors/', { vendorId });
+  },
+  unsaveVendor: async (vendorId: string): Promise<void> => {
+    await api.delete(`/saved-vendors/${vendorId}/`);
+  },
+
+  getAlerts: async (): Promise<PriceAlert[]> => {
+    const { data } = await api.get<PriceAlert[]>('/alerts/');
+    return data;
+  },
+  createAlert: async (input: CreateAlertInput): Promise<PriceAlert> => {
+    const { data } = await api.post<PriceAlert>('/alerts/', input);
+    return data;
+  },
+  updateAlert: async (id: string, patch: Partial<Pick<PriceAlert, 'isActive' | 'targetPrice'>>): Promise<PriceAlert> => {
+    const { data } = await api.patch<PriceAlert>(`/alerts/${id}/`, patch);
+    return data;
+  },
+  deleteAlert: async (id: string): Promise<void> => {
+    await api.delete(`/alerts/${id}/`);
+  },
+
+  getNotifications: async (): Promise<NotificationsResponse> => {
+    const { data } = await api.get<NotificationsResponse>('/notifications/');
+    return data;
+  },
+  markNotificationRead: async (id: string): Promise<Notification> => {
+    const { data } = await api.post<Notification>(`/notifications/${id}/read/`);
+    return data;
+  },
+  markAllNotificationsRead: async (): Promise<void> => {
+    await api.post('/notifications/read-all/');
   },
 };
 

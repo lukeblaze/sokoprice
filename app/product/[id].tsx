@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Suspense, lazy } from 'react';
+import React, { useMemo, Suspense, lazy } from 'react';
 import {
   View,
   StyleSheet,
@@ -24,8 +24,7 @@ import {
 } from 'phosphor-react-native';
 import { showMessage } from 'react-native-flash-message';
 import { impactLight } from '@/utils/haptics';
-import { useProduct, useProductTrend, useVendorListings } from '@/hooks/useQueries';
-import { useAppStore } from '@/store';
+import { useProduct, useProductTrend, useVendorListings, useToggleWatchlist, useCreateAlert } from '@/hooks/useQueries';
 import { colors, radii, typography, shadows } from '@/theme/tokens';
 import { TagChip, VendorBadgeChip, LoadingSpinner } from '@/components/common';
 import { formatKES, formatPriceChange, pricePercentage, formatShortDate } from '@/utils/format';
@@ -77,12 +76,11 @@ export default function ProductDetailScreen() {
   const { data: trend } = useProductTrend(id);
   const { data: listings } = useVendorListings(id);
 
-  const toggleWatchlist = useAppStore(s => s.toggleWatchlist);
-  const isWatchlisted = useAppStore(s => s.isWatchlisted);
-  const addAlert = useAppStore(s => s.addAlert);
+  const toggleWatchlist = useToggleWatchlist();
+  const createAlert = useCreateAlert();
 
-  const [alertSet, setAlertSet] = useState(false);
-  const watchlisted = isWatchlisted(id);
+  const watchlisted = product?.isFavorited ?? false;
+  const alertSet = product?.hasAlert ?? false;
   const ctaPress = usePressScale();
   const ctaMagnetic = useMagnetic();
   const t = useThemeColors();
@@ -109,28 +107,27 @@ export default function ProductDetailScreen() {
 
   const handleWatchlist = async () => {
     await impactLight();
-    toggleWatchlist(id);
-    showMessage({
-      message: watchlisted ? 'Removed from watchlist' : 'Added to watchlist',
-      type: watchlisted ? 'info' : 'success',
-    });
+    const wasWatchlisted = watchlisted;
+    try {
+      await toggleWatchlist.mutateAsync({ productId: id, isWatchlisted: wasWatchlisted });
+      showMessage({
+        message: wasWatchlisted ? 'Removed from watchlist' : 'Added to watchlist',
+        type: wasWatchlisted ? 'info' : 'success',
+      });
+    } catch (err) {
+      showMessage({ message: err instanceof Error ? err.message : 'Could not update watchlist', type: 'danger' });
+    }
   };
 
-  const handleSetAlert = () => {
+  const handleSetAlert = async () => {
     if (!product) return;
     const targetPrice = Math.round(product.bestPrice * 0.95); // 5% below current best
-    addAlert({
-      id: `alert-${Date.now()}`,
-      productId: id,
-      productName: product.name,
-      targetPrice,
-      currentPrice: product.bestPrice,
-      direction: 'below',
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    });
-    setAlertSet(true);
-    showMessage({ message: `Alert set for below ${formatKES(targetPrice)}`, type: 'success' });
+    try {
+      await createAlert.mutateAsync({ productId: id, targetPrice, direction: 'below' });
+      showMessage({ message: `Alert set for below ${formatKES(targetPrice)}`, type: 'success' });
+    } catch (err) {
+      showMessage({ message: err instanceof Error ? err.message : 'Could not set alert', type: 'danger' });
+    }
   };
 
   const handleContactVendor = (phone?: string) => {

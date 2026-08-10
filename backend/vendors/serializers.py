@@ -3,6 +3,26 @@ from rest_framework import serializers
 from .models import Vendor, VendorListing
 
 
+def _generate_unique_slug(name):
+    base = name.lower().strip()
+    base = ''.join(c if c.isalnum() else '-' for c in base)
+    while '--' in base:
+        base = base.replace('--', '-')
+    base = base.strip('-')[:70] or 'vendor'
+    slug = base
+    suffix = 1
+    while Vendor.objects.filter(pk=slug).exists():
+        suffix += 1
+        slug = f'{base}-{suffix}'
+    return slug
+
+
+def _initials_from_name(name):
+    words = [w for w in name.split() if w]
+    letters = ''.join(w[0] for w in words[:2]).upper()
+    return letters or 'V'
+
+
 class VendorSerializer(serializers.ModelSerializer):
     # coerce_to_string=False — otherwise DRF renders DecimalField as a
     # JSON string ("4.8"), but the frontend type is `rating: number`
@@ -35,6 +55,37 @@ class VendorSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             return False
         return vendor.saved_by.filter(user=user).exists()
+
+
+class VendorWriteSerializer(serializers.ModelSerializer):
+    """Handles admin create/update — the writable subset matching the
+    frontend's VendorInput type. id/initials/rating/reviewCount/
+    productCount/joinedDate are all derived or start at zero for a new
+    vendor, mirroring the old mock's create() logic but for real."""
+
+    openingHours = serializers.CharField(source='opening_hours', required=False, allow_blank=True)
+    isVerified = serializers.BooleanField(source='is_verified', required=False, default=False)
+    colorHex = serializers.CharField(source='color_hex', required=False, default='#1a3a5c')
+    logoUrl = serializers.URLField(source='logo_url', required=False, allow_null=True)
+
+    class Meta:
+        model = Vendor
+        fields = [
+            'name', 'category', 'description', 'location', 'area', 'badge',
+            'phone', 'email', 'whatsapp', 'website', 'openingHours',
+            'isVerified', 'colorHex', 'logoUrl',
+        ]
+
+    def create(self, validated_data):
+        validated_data['id'] = _generate_unique_slug(validated_data['name'])
+        validated_data['initials'] = _initials_from_name(validated_data['name'])
+        return super().create(validated_data)
+
+    def to_representation(self, instance):
+        # Always respond with the full read shape (rating, reviewCount,
+        # productCount, isFavorited, joinedDate, ...), not just the
+        # writable subset — the frontend expects a complete Vendor back.
+        return VendorSerializer(instance, context=self.context).data
 
 
 class VendorListingSerializer(serializers.ModelSerializer):

@@ -5,6 +5,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BellIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { colors, radii, typography } from '@/theme/tokens';
 import { useAppStore } from '@/store';
+import { useNotifications } from '@/hooks/useQueries';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { TAB_ROUTE_ICONS } from './tabConfig';
 
@@ -22,7 +23,8 @@ export function DesktopSidebar(props: BottomTabBarProps) {
 
 function DesktopSidebarInner({ state, descriptors, navigation }: BottomTabBarProps) {
   const user = useAppStore(s => s.user);
-  const unreadCount = useAppStore(s => s.unreadCount);
+  const { data: notificationsData } = useNotifications();
+  const unreadCount = notificationsData?.unreadCount ?? 0;
   const initials = user?.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() ?? 'BL';
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({

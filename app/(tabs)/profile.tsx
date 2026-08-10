@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Switch,
 } from 'react-native';
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
@@ -21,7 +20,6 @@ import {
   FileTextIcon,
   SignOutIcon,
   CaretRightIcon,
-  ShieldCheckIcon,
   type IconProps,
 } from 'phosphor-react-native';
 import { useAppStore } from '@/store';
@@ -35,6 +33,7 @@ import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { authApi } from '@/api';
+import { useMe, useUpdateMe, useAlerts, useWatchlist } from '@/hooks/useQueries';
 
 const NAIROBI_AREAS = ['Nairobi CBD', 'Westlands', 'Kilimani', 'Upper Hill', 'Ngara', 'Kileleshwa'];
 const CURRENCIES = [
@@ -85,45 +84,16 @@ function SettingsRow({ icon: Icon, label, value, onPress, danger, iconBg, iconCo
   );
 }
 
-function SwitchRow({ icon: Icon, label, value, onValueChange, iconBg, iconColor, dyn, t }: {
-  icon: React.ComponentType<IconProps>;
-  label: string;
-  value: boolean;
-  onValueChange: (v: boolean) => void;
-  iconBg?: string;
-  iconColor?: string;
-  dyn: ReturnType<typeof StyleSheet.create>;
-  t: ReturnType<typeof useThemeColors>;
-}) {
-  return (
-    <View style={styles.settingsRow}>
-      <View style={[styles.settingsIcon, { backgroundColor: iconBg ?? t.surfaceAlt }]}>
-        <Icon size={17} color={iconColor ?? t.textSecondary} />
-      </View>
-      <Text style={[styles.settingsLabel, dyn.settingsLabel]}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: t.border, true: colors.amber[400] }}
-        thumbColor={colors.white}
-      />
-    </View>
-  );
-}
-
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const user = useAppStore(s => s.user);
-  const alerts = useAppStore(s => s.alerts);
-  const watchlistIds = useAppStore(s => s.watchlistIds);
-  const savedVendorIds = useAppStore(s => s.savedVendorIds);
+  const { data: user } = useMe();
+  const { data: alerts = [] } = useAlerts();
+  const { data: watchlistIds = [] } = useWatchlist();
+  const updateMe = useUpdateMe();
   const colorScheme = useAppStore(s => s.colorScheme);
   const setColorScheme = useAppStore(s => s.setColorScheme);
-  const setUserLocation = useAppStore(s => s.setUserLocation);
-  const setUserCurrency = useAppStore(s => s.setUserCurrency);
-  const isAdmin = useAppStore(s => s.isAdmin);
-  const setIsAdmin = useAppStore(s => s.setIsAdmin);
   const signOut = useAppStore(s => s.signOut);
+  const isAdmin = user?.role === 'admin';
   const t = useThemeColors();
   const dyn = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: t.bg },
@@ -159,7 +129,7 @@ export default function ProfileScreen() {
       `Price alerts (${alerts.length}):`,
       ...alerts.map(a => `  - ${a.productName}: alert ${a.direction} KES ${a.targetPrice.toLocaleString()} (now KES ${a.currentPrice.toLocaleString()})`),
       '',
-      `Watchlist (${watchlistIds.size} products): ${Array.from(watchlistIds).join(', ') || 'none'}`,
+      `Watchlist (${watchlistIds.length} products): ${watchlistIds.join(', ') || 'none'}`,
     ].join('\n');
 
     if (Platform.OS === 'web') {
@@ -217,15 +187,15 @@ export default function ProfileScreen() {
           {/* Stats strip */}
           <View style={[styles.statsStrip, dyn.statsStrip]}>
             <View style={styles.stripStat}>
-              <Text style={[styles.stripValue, dyn.stripValue]}>{watchlistIds.size}</Text>
+              <Text style={[styles.stripValue, dyn.stripValue]}>{user?.watchlistCount ?? 0}</Text>
               <Text style={[styles.stripLabel, dyn.stripLabel]}>Watchlist</Text>
             </View>
             <View style={[styles.stripStat, styles.stripStatBorder, dyn.stripStatBorder]}>
-              <Text style={[styles.stripValue, dyn.stripValue]}>{alerts.length}</Text>
+              <Text style={[styles.stripValue, dyn.stripValue]}>{user?.alertCount ?? 0}</Text>
               <Text style={[styles.stripLabel, dyn.stripLabel]}>Price alerts</Text>
             </View>
             <View style={styles.stripStat}>
-              <Text style={[styles.stripValue, dyn.stripValue]}>{savedVendorIds.size}</Text>
+              <Text style={[styles.stripValue, dyn.stripValue]}>{user?.savedVendorCount ?? 0}</Text>
               <Text style={[styles.stripLabel, dyn.stripLabel]}>Saved vendors</Text>
             </View>
           </View>
@@ -238,7 +208,7 @@ export default function ProfileScreen() {
             t={t}
             icon={BellIcon}
             label="Price alerts"
-            value={`${alerts.length} active`}
+            value={`${user?.alertCount ?? 0} active`}
             iconBg={colors.amber[50]}
             iconColor={colors.amber[600]}
             onPress={() => router.push('/(tabs)/alerts')}
@@ -249,7 +219,7 @@ export default function ProfileScreen() {
             t={t}
             icon={HeartIcon}
             label="Watchlist"
-            value={`${watchlistIds.size} products`}
+            value={`${user?.watchlistCount ?? 0} products`}
             iconBg={colors.red[50]}
             iconColor={colors.red[500]}
             onPress={() => router.push({ pathname: '/(tabs)/search', params: { mode: 'watchlist' } })}
@@ -260,7 +230,7 @@ export default function ProfileScreen() {
             t={t}
             icon={StorefrontIcon}
             label="Saved vendors"
-            value={`${savedVendorIds.size} vendors`}
+            value={`${user?.savedVendorCount ?? 0} vendors`}
             iconBg={colors.green[50]}
             iconColor={colors.green[600]}
             onPress={() => router.push({ pathname: '/(tabs)/vendors', params: { mode: 'saved' } })}
@@ -294,17 +264,6 @@ export default function ProfileScreen() {
             label="Appearance"
             value={colorScheme.charAt(0).toUpperCase() + colorScheme.slice(1)}
             onPress={() => appearanceSheet.current?.present()}
-          />
-          <View style={[styles.divider, dyn.divider]} />
-          <SwitchRow
-            dyn={dyn}
-            t={t}
-            icon={ShieldCheckIcon}
-            label="Admin access"
-            value={isAdmin}
-            onValueChange={setIsAdmin}
-            iconBg={colors.amber[50]}
-            iconColor={colors.amber[600]}
           />
         </View>
 
@@ -380,14 +339,14 @@ export default function ProfileScreen() {
         title="Location"
         options={NAIROBI_AREAS.map(a => ({ label: a, value: a }))}
         value={user?.location ?? 'Nairobi CBD'}
-        onSelect={setUserLocation}
+        onSelect={location => updateMe.mutate({ location })}
       />
       <PickerSheet
         ref={currencySheet}
         title="Currency"
         options={CURRENCIES}
         value={user?.currency ?? 'KES'}
-        onSelect={v => setUserCurrency(v as 'KES' | 'USD' | 'EUR')}
+        onSelect={v => updateMe.mutate({ currency: v as 'KES' | 'USD' | 'EUR' })}
       />
       <PickerSheet
         ref={appearanceSheet}

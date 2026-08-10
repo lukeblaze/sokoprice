@@ -26,6 +26,7 @@ import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { authApi } from '@/api';
 import { CommandPalette } from '@/components/common/CommandPalette';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -91,36 +92,38 @@ export default function RootLayout() {
           <PaperProvider theme={isDark ? darkTheme : lightTheme}>
             <BottomSheetModalProvider>
             <StatusBar style="light" backgroundColor={colors.navy[800]} />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="welcome" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="(auth)"
-                options={{ animation: 'slide_from_bottom' }}
-              />
-              <Stack.Screen
-                name="product/[id]"
-                options={{
-                  presentation: 'card',
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="vendor/[id]"
-                options={{
-                  presentation: 'card',
-                  animation: 'slide_from_right',
-                }}
-              />
-              <Stack.Screen
-                name="admin"
-                options={{
-                  presentation: 'card',
-                  animation: 'slide_from_right',
-                }}
-              />
-            </Stack>
+            <ErrorBoundary>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="welcome" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="(auth)"
+                  options={{ animation: 'slide_from_bottom' }}
+                />
+                <Stack.Screen
+                  name="product/[id]"
+                  options={{
+                    presentation: 'card',
+                    animation: 'slide_from_right',
+                  }}
+                />
+                <Stack.Screen
+                  name="vendor/[id]"
+                  options={{
+                    presentation: 'card',
+                    animation: 'slide_from_right',
+                  }}
+                />
+                <Stack.Screen
+                  name="admin"
+                  options={{
+                    presentation: 'card',
+                    animation: 'slide_from_right',
+                  }}
+                />
+              </Stack>
+            </ErrorBoundary>
             <FlashMessage position="top" />
             <CommandPalette />
             </BottomSheetModalProvider>

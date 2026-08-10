@@ -108,6 +108,12 @@ REST_FRAMEWORK = {
     # wrapper. The one endpoint that needs a custom wrapper
     # (notifications' {results, unreadCount} in Phase 5) builds it
     # explicitly in its own view instead.
+    'DEFAULT_THROTTLE_RATES': {
+        # Applied explicitly via AuthRateThrottle on register/login/
+        # password-reset — not a global default, so browsing endpoints
+        # stay unthrottled.
+        'auth': env('AUTH_THROTTLE_RATE', default='10/min'),
+    },
 }
 
 SIMPLE_JWT = {
@@ -122,6 +128,10 @@ SIMPLE_JWT = {
 # Africa's Talking SMS (Phase 6) — unset until real credentials exist.
 AFRICASTALKING_USERNAME = env('AFRICASTALKING_USERNAME', default='')
 AFRICASTALKING_API_KEY = env('AFRICASTALKING_API_KEY', default='')
+
+# Password-reset emails link back to the frontend, not the API itself.
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:8081')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='SokoPrice <onboarding@resend.dev>')
 
 # Print request-handling exceptions to stdout — Render's Logs tab is the
 # only way to see a traceback in prod (DEBUG=False, no email backend

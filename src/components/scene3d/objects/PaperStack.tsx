@@ -4,29 +4,37 @@ import { useDragRotate } from '../useDragRotate';
 import { GLTFModel } from '../GLTFModel';
 import { modelConfig } from '../modelConfig';
 
-const SHEET_COUNT = 6;
+const BOOK_COLORS = [colors.navy[600], colors.white, colors.navy[600], colors.white];
 
 function PaperStackPrimitive() {
-  // Tiny per-sheet jitter so the stack doesn't read as one solid block —
-  // computed once at mount, not re-randomized every render.
-  const sheets = useMemo(
+  // Stack of bound documents/books, tiny per-book jitter so it doesn't
+  // read as one solid block — computed once at mount.
+  const books = useMemo(
     () =>
-      Array.from({ length: SHEET_COUNT }, (_, i) => ({
-        y: i * 0.035,
-        jitterX: (Math.random() - 0.5) * 0.02,
-        jitterZ: (Math.random() - 0.5) * 0.02,
-        jitterRot: (Math.random() - 0.5) * 0.03,
+      BOOK_COLORS.map((color, i) => ({
+        y: i * 0.05,
+        jitterX: (Math.random() - 0.5) * 0.03,
+        jitterZ: (Math.random() - 0.5) * 0.03,
+        jitterRot: (Math.random() - 0.5) * 0.06,
+        color,
       })),
     []
   );
 
   return (
-    <group>
-      {sheets.map((s, i) => (
-        <mesh key={i} castShadow position={[s.jitterX, s.y, s.jitterZ]} rotation={[0, s.jitterRot, 0]}>
-          <boxGeometry args={[0.6, 0.03, 0.82]} />
-          <meshStandardMaterial color={colors.gray[50]} roughness={0.85} />
-        </mesh>
+    <group rotation={[0, 0.3, 0]}>
+      {books.map((b, i) => (
+        <group key={i} position={[b.jitterX, b.y, b.jitterZ]} rotation={[0, b.jitterRot, 0]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.62, 0.045, 0.85]} />
+            <meshStandardMaterial color={b.color} roughness={0.6} />
+          </mesh>
+          {/* Green accent stripe near the spine */}
+          <mesh position={[0, 0.024, -0.32]}>
+            <boxGeometry args={[0.62, 0.003, 0.06]} />
+            <meshStandardMaterial color={colors.green[400]} roughness={0.5} />
+          </mesh>
+        </group>
       ))}
     </group>
   );

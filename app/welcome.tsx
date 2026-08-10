@@ -244,17 +244,18 @@ export default function WelcomeScreen() {
 
   const slide = SLIDES[activeIndex];
 
-  // Web's background is the fixed navy screenBg below (the 3D scene
-  // renders with a transparent canvas over it), not the app's
-  // light/dark toggle — so text stays a fixed light palette there.
-  // Native keeps following the app theme like the rest of the site.
-  const textPrimary = isWeb ? colors.white : t.textPrimary;
-  const textSecondary = isWeb ? 'rgba(255,255,255,0.85)' : t.textSecondary;
-  const hairlineBorder = isWeb ? 'rgba(255,255,255,0.3)' : t.border;
-  const dotColor = isWeb ? 'rgba(255,255,255,0.35)' : t.border;
-  const ghostColor = isWeb ? 'rgba(255,255,255,0.16)' : (t.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.07)');
-  const bottomScrimColor = isWeb ? 'rgba(4,9,20,0.68)' : (t.isDark ? 'rgba(4,10,24,0.6)' : 'rgba(249,250,251,0.92)');
-  const screenBg = isWeb ? colors.navy[800] : t.bg;
+  // Web's background is the fixed light-studio screenBg below (the 3D
+  // scene renders with a transparent canvas over it, matching the
+  // reference's soft gray studio look), not the app's light/dark toggle
+  // — so text stays a fixed dark-on-light palette there. Native keeps
+  // following the app theme like the rest of the site.
+  const textPrimary = isWeb ? colors.navy[800] : t.textPrimary;
+  const textSecondary = isWeb ? colors.navy[600] : t.textSecondary;
+  const hairlineBorder = isWeb ? colors.navy[200] : t.border;
+  const dotColor = isWeb ? colors.navy[200] : t.border;
+  const ghostColor = isWeb ? 'rgba(13,27,42,0.05)' : (t.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.07)');
+  const bottomScrimColor = isWeb ? 'rgba(247,245,240,0.9)' : (t.isDark ? 'rgba(4,10,24,0.6)' : 'rgba(249,250,251,0.92)');
+  const screenBg = isWeb ? colors.gray[50] : t.bg;
   const bgTransition = Platform.OS === 'web'
     ? ({ transition: `background-color ${TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)` } as any)
     : {};
@@ -277,21 +278,44 @@ export default function WelcomeScreen() {
         />
       )}
 
-      {/* Giant ghost brand text */}
-      <View style={styles.ghostWrap} pointerEvents="none">
-        <Text
-          style={[
-            styles.ghostText,
-            { color: ghostColor },
-            Platform.OS === 'web'
-              ? ({ fontSize: 'clamp(48px, 16vw, 220px)' } as any)
-              : { fontSize: isMobile ? 56 : 130 },
-          ]}
-          numberOfLines={1}
-        >
-          SOKOPRICE
-        </Text>
-      </View>
+      {/* Native: giant ghost watermark brand text (unchanged). Web: a
+          prominent 3D-look gradient wordmark instead, matching the
+          reference's extruded blue-to-green "SOKOPRICE" logo — a flat
+          Text with a CSS gradient fill + layered text-shadow standing
+          in for real extrusion, since it only needs to run on web and
+          reuses the Anton font already loaded (no new font asset). */}
+      {isWeb ? (
+        <View style={styles.webLogoWrap} pointerEvents="none">
+          <Text
+            style={[
+              styles.webLogoText,
+              {
+                backgroundImage: `linear-gradient(135deg, ${colors.navy[600]}, ${colors.green[400]})`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent',
+                textShadow: '2px 3px 0 rgba(13,27,42,0.18), 5px 8px 14px rgba(13,27,42,0.15)',
+              } as any,
+            ]}
+            numberOfLines={1}
+          >
+            SOKOPRICE
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.ghostWrap} pointerEvents="none">
+          <Text
+            style={[
+              styles.ghostText,
+              { color: ghostColor },
+              { fontSize: isMobile ? 56 : 130 },
+            ]}
+            numberOfLines={1}
+          >
+            SOKOPRICE
+          </Text>
+        </View>
+      )}
 
       {/* Top-left brand label */}
       <Text style={[styles.brandLabel, { color: textPrimary }]}>SOKOPRICE</Text>
@@ -399,6 +423,17 @@ const styles = StyleSheet.create({
     fontSize: 130,
     fontFamily: 'Anton_400Regular',
     letterSpacing: -2,
+  },
+  webLogoWrap: {
+    position: 'absolute',
+    top: '9%',
+    right: '6%',
+    zIndex: 60,
+  },
+  webLogoText: {
+    fontSize: 'clamp(32px, 5.5vw, 64px)' as any,
+    fontFamily: 'Anton_400Regular',
+    letterSpacing: -0.5,
   },
   brandLabel: {
     position: 'absolute',

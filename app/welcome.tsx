@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Image,
@@ -10,20 +10,12 @@ import {
 import { Text } from '@/components/common/Text';
 import { router } from 'expo-router';
 import Head from 'expo-router/head';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowRightIcon } from 'phosphor-react-native';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/store';
 import { useThemeColors } from '@/hooks/useThemeColors';
-
-// Real interactive 3D scene, web only — module-scope so the lazy
-// component is created once, not re-created (and re-suspended) on
-// every render. Metro resolves this to WelcomeScene.web.tsx only for
-// the web bundle; native resolves the plain WelcomeScene.tsx no-op and
-// never pulls in three.js/react-three-fiber at all.
-const Scene3D = Platform.OS === 'web'
-  ? React.lazy(() => import('@/components/scene3d/WelcomeScene'))
-  : null;
 
 interface Slide {
   src: string;
@@ -33,7 +25,8 @@ interface Slide {
 }
 
 // Real product cutouts (transparent PNGs) so the carousel reads as
-// floating 3D objects instead of framed photographs.
+// floating 3D objects instead of framed photographs. Native-only — web
+// uses a real background video instead (see the `isWeb` branch below).
 const SLIDES: Slide[] = [
   {
     src: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/MacBook_Pro_transparency.png',
@@ -209,21 +202,16 @@ function SlideFigure({
 export default function WelcomeScreen() {
   const { width } = useWindowDimensions();
   const isMobile = width < 640;
+  const isDesktopWeb = width >= 1024;
   const isWeb = Platform.OS === 'web';
   const [activeIndex, setActiveIndex] = useState(0);
   const isAnimating = useRef(false);
   const completeOnboarding = useAppStore(s => s.completeOnboarding);
   const t = useThemeColors();
 
-  // Gates the 3D scene off during Expo's static-export (SSG) pass —
-  // `document`/WebGL don't exist there, and this effect never runs
-  // during that Node render, only after real browser hydration.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
   // Native still shows the 2D carousel (see the JSX below), so it still
-  // needs this auto-loop; web replaced the carousel with the 3D scene,
-  // so there's nothing on web for this to drive.
+  // needs this auto-loop; web uses a real background video instead, so
+  // there's nothing on web for this to drive.
   useEffect(() => {
     if (isWeb) return;
     const id = setInterval(() => {
@@ -244,17 +232,16 @@ export default function WelcomeScreen() {
 
   const slide = SLIDES[activeIndex];
 
-  // Web's background is the fixed light-studio screenBg below (the 3D
-  // scene renders with a transparent canvas over it, matching the
-  // reference's soft gray studio look), not the app's light/dark toggle
-  // — so text stays a fixed dark-on-light palette there. Native keeps
-  // following the app theme like the rest of the site.
+  // The reference video is a bright, light studio scene (not dark), so
+  // — unlike sites tuned for a dark background video — text stays a
+  // consistent dark navy at every size instead of flipping to white on
+  // larger screens. Native keeps following the app theme like the rest
+  // of the site.
   const textPrimary = isWeb ? colors.navy[800] : t.textPrimary;
   const textSecondary = isWeb ? colors.navy[600] : t.textSecondary;
-  const hairlineBorder = isWeb ? colors.navy[200] : t.border;
+  const hairlineBorder = isWeb ? 'rgba(13,27,42,0.14)' : t.border;
   const dotColor = isWeb ? colors.navy[200] : t.border;
   const ghostColor = isWeb ? 'rgba(13,27,42,0.05)' : (t.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.07)');
-  const bottomScrimColor = isWeb ? 'rgba(247,245,240,0.9)' : (t.isDark ? 'rgba(4,10,24,0.6)' : 'rgba(249,250,251,0.92)');
   const screenBg = isWeb ? colors.gray[50] : t.bg;
   const bgTransition = Platform.OS === 'web'
     ? ({ transition: `background-color ${TRANSITION_MS}ms cubic-bezier(0.4,0,0.2,1)` } as any)
@@ -267,23 +254,44 @@ export default function WelcomeScreen() {
         <meta name="description" content="The fastest way to compare prices across Nairobi vendors, track trends, and never overpay again." />
       </Head>
 
+      {/* Background video — vendors and shoppers using the platform.
+          Web only: RN has no intrinsic <video> element, and native
+          keeps the 2D carousel below instead. No dark overlay scrim —
+          the video itself is bright enough for dark navy text to read
+          directly over it. */}
+      {isWeb && React.createElement('video', {
+        autoPlay: true,
+        muted: true,
+        loop: true,
+        playsInline: true,
+        src: '/welcome-bg.mp4',
+        style: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0,
+        },
+      })}
+
       {/* Grain texture */}
       {Platform.OS === 'web' && (
         <View
           pointerEvents="none"
           style={[
             styles.grain,
-            { backgroundImage: `url("${GRAIN_DATA_URI}")`, backgroundSize: '200px 200px', opacity: isWeb ? 0.15 : (t.isDark ? 0.4 : 0.18) } as any,
+            { backgroundImage: `url("${GRAIN_DATA_URI}")`, backgroundSize: '200px 200px', opacity: isWeb ? 0.12 : (t.isDark ? 0.4 : 0.18) } as any,
           ]}
         />
       )}
 
-      {/* Native: giant ghost watermark brand text (unchanged). Web: a
-          prominent 3D-look gradient wordmark instead, matching the
-          reference's extruded blue-to-green "SOKOPRICE" logo — a flat
-          Text with a CSS gradient fill + layered text-shadow standing
-          in for real extrusion, since it only needs to run on web and
-          reuses the Anton font already loaded (no new font asset). */}
+      {/* Native: giant ghost watermark brand text. Web: a prominent
+          3D-look gradient wordmark instead, matching the reference's
+          extruded blue-to-green "SOKOPRICE" logo — a flat Text with a
+          CSS gradient fill + layered text-shadow standing in for real
+          extrusion, reusing the Anton font already loaded. */}
       {isWeb ? (
         <View style={styles.webLogoWrap} pointerEvents="none">
           <Text
@@ -320,23 +328,24 @@ export default function WelcomeScreen() {
       {/* Top-left brand label */}
       <Text style={[styles.brandLabel, { color: textPrimary }]}>SOKOPRICE</Text>
 
-      {/* Top-right sign-in link */}
-      <Pressable onPress={() => { completeOnboarding(); router.push('/(auth)/login'); }} style={[styles.signInLink, { borderColor: hairlineBorder }]}>
+      {/* Top-right sign-in — a glass pill on web (backdrop-blur over
+          the video), a plain bordered pill on native. */}
+      <Pressable
+        onPress={() => { completeOnboarding(); router.push('/(auth)/login'); }}
+        style={({ hovered }) => [
+          styles.signInLink,
+          { borderColor: hairlineBorder },
+          isWeb && (styles.signInLinkGlass as any),
+          isWeb && hovered && (styles.signInLinkGlassHover as any),
+        ]}
+      >
         <Text style={[styles.signInText, { color: textPrimary }]}>Sign in</Text>
       </Pressable>
 
-      {/* Native: auto-looping 2D carousel (unchanged). Web: real
-          interactive 3D scene — pointerEvents left enabled (not
-          'none') since it needs to receive drag input. */}
-      {isWeb ? (
-        mounted && Scene3D && (
-          <View style={styles.carousel}>
-            <Suspense fallback={null}>
-              <Scene3D />
-            </Suspense>
-          </View>
-        )
-      ) : (
+      {/* Native only: auto-looping 2D carousel. Web's hero visual is
+          the background video above — nothing else needed in this
+          slot. */}
+      {!isWeb && (
         <View style={styles.carousel} pointerEvents="none">
           {SLIDES.map((s, i) => (
             <SlideFigure key={s.src} role={roles[i]} src={s.src} aspect={s.aspect} isMobile={isMobile} />
@@ -344,46 +353,80 @@ export default function WelcomeScreen() {
         </View>
       )}
 
-      {/* Bottom gradient scrim for text legibility */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['transparent', bottomScrimColor]}
-        style={styles.bottomScrim}
-      />
-
-      {/* Bottom-left caption. Native: carousel dots + current slide's
-          title/caption. Web: a single static tagline — there's no
-          carousel state to reflect since the 3D scene replaced it. */}
+      {/* Bottom-anchored content. Web: headline + CTA (left) and two
+          glass cards (right), row on desktop / stacked on mobile —
+          matching the reference's `lg:flex-row lg:items-end
+          lg:justify-between` pattern via RN Flexbox. Native: unchanged
+          carousel dots/title/caption + CTA. */}
       {isWeb ? (
-        <View style={styles.bottomLeft}>
-          <Text style={[styles.slideTitle, { color: textPrimary }]}>DRAG TO EXPLORE</Text>
-          {!isMobile && (
-            <Text style={[styles.slideCaption, { color: textSecondary }]}>
-              Real prices from every vendor in Nairobi — compare, track, and never overpay again.
+        <View
+          style={[
+            styles.webBottomContent,
+            { flexDirection: isDesktopWeb ? 'row' : 'column', alignItems: isDesktopWeb ? 'flex-end' : 'stretch' },
+          ]}
+        >
+          <View style={[styles.webHeadlineCol, isDesktopWeb && styles.webHeadlineColDesktop]}>
+            <Text style={[styles.webHeadline, { color: textPrimary }]}>
+              Compare prices instantly. Buy with confidence.
             </Text>
-          )}
+            <Pressable
+              onPress={() => { completeOnboarding(); router.push('/(auth)/register'); }}
+              style={({ hovered }) => [styles.webCtaButton, hovered && styles.webCtaButtonHover]}
+            >
+              <Text style={styles.webCtaButtonText}>Get started</Text>
+              <ArrowRightIcon size={18} color={colors.white} weight="bold" />
+            </Pressable>
+          </View>
+
+          <View style={[styles.webCardsRow, isMobile && styles.webCardsRowStacked]}>
+            <Animated.View
+              entering={FadeInDown.delay(80).springify().damping(18)}
+              style={[styles.webCard, isMobile && styles.webCardStacked]}
+            >
+              <Text style={[styles.webCardTitle, { color: textPrimary }]}>Compare &amp; track</Text>
+              <Text style={[styles.webCardBody, { color: textSecondary }]}>
+                Real prices from every vendor in Nairobi, updated daily — set an alert and never overpay.
+              </Text>
+            </Animated.View>
+            <Animated.View
+              entering={FadeInDown.delay(160).springify().damping(18)}
+              style={[styles.webCard, isMobile && styles.webCardStacked]}
+            >
+              <Text style={[styles.webCardTitle, { color: textPrimary }]}>Verified vendors</Text>
+              <Text style={[styles.webCardBody, { color: textSecondary }]}>
+                Every seller is checked before they list — buy with confidence.
+              </Text>
+            </Animated.View>
+          </View>
         </View>
       ) : (
-        <View style={styles.bottomLeft}>
-          <View style={styles.dotsRow}>
-            {SLIDES.map((_, i) => (
-              <View key={i} style={[styles.dot, { backgroundColor: dotColor }, i === activeIndex && styles.dotActive]} />
-            ))}
+        <>
+          {/* Bottom gradient scrim for text legibility (native only —
+              the web video is bright enough without one). */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={['transparent', t.isDark ? 'rgba(4,10,24,0.6)' : 'rgba(249,250,251,0.92)']}
+            style={styles.bottomScrim}
+          />
+          <View style={styles.bottomLeft}>
+            <View style={styles.dotsRow}>
+              {SLIDES.map((_, i) => (
+                <View key={i} style={[styles.dot, { backgroundColor: dotColor }, i === activeIndex && styles.dotActive]} />
+              ))}
+            </View>
+            <Text style={[styles.slideTitle, { color: textPrimary }]}>{slide.title.toUpperCase()}</Text>
+            {!isMobile && <Text style={[styles.slideCaption, { color: textSecondary }]}>{slide.caption}</Text>}
           </View>
-          <Text style={[styles.slideTitle, { color: textPrimary }]}>{slide.title.toUpperCase()}</Text>
-          {!isMobile && <Text style={[styles.slideCaption, { color: textSecondary }]}>{slide.caption}</Text>}
-        </View>
+          <Pressable onPress={() => { completeOnboarding(); router.push('/(auth)/register'); }} style={styles.ctaWrap}>
+            {({ hovered }) => (
+              <>
+                <Text style={[styles.ctaText, { color: textPrimary }, hovered && { opacity: 1 }]}>Get started</Text>
+                <ArrowRightIcon size={22} color={textPrimary} weight="bold" />
+              </>
+            )}
+          </Pressable>
+        </>
       )}
-
-      {/* Bottom-right CTA */}
-      <Pressable onPress={() => { completeOnboarding(); router.push('/(auth)/register'); }} style={styles.ctaWrap}>
-        {({ hovered }) => (
-          <>
-            <Text style={[styles.ctaText, { color: textPrimary }, hovered && { opacity: 1 }]}>Get started</Text>
-            <ArrowRightIcon size={22} color={textPrimary} weight="bold" />
-          </>
-        )}
-      </Pressable>
     </View>
   );
 }
@@ -394,14 +437,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     ...(Platform.OS === 'web' ? ({ height: '100vh', minHeight: '100vh' } as any) : {}),
-  },
-  videoScrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
   },
   grain: {
     position: 'absolute',
@@ -454,6 +489,13 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     borderWidth: 1,
   },
+  signInLinkGlass: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    backdropFilter: 'blur(16px)',
+  } as any,
+  signInLinkGlassHover: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  } as any,
   signInText: {
     fontSize: 13,
     fontWeight: '600',
@@ -541,5 +583,76 @@ const styles = StyleSheet.create({
     fontFamily: 'Anton_400Regular',
     letterSpacing: -0.5,
     opacity: 0.95,
+  },
+  webBottomContent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 36,
+    justifyContent: 'space-between',
+    gap: 24,
+  },
+  webHeadlineCol: {
+    maxWidth: 460,
+  },
+  webHeadlineColDesktop: {
+    flex: 1,
+  },
+  webHeadline: {
+    fontSize: 'clamp(28px, 4vw, 44px)' as any,
+    fontFamily: 'Anton_400Regular',
+    letterSpacing: -0.5,
+    lineHeight: 'clamp(32px, 4.4vw, 48px)' as any,
+  },
+  webCtaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    marginTop: 20,
+    paddingHorizontal: 22,
+    paddingVertical: 13,
+    borderRadius: radii.full,
+    backgroundImage: `linear-gradient(180deg, ${colors.navy[700]}, ${colors.navy[900]})`,
+  } as any,
+  webCtaButtonHover: {
+    opacity: 0.9,
+  },
+  webCtaButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  webCardsRow: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  webCardsRowStacked: {
+    flexDirection: 'column',
+  },
+  webCard: {
+    width: 240,
+    borderRadius: radii.xl,
+    padding: 18,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    borderColor: 'rgba(255,255,255,0.55)',
+    backdropFilter: 'blur(16px)',
+  } as any,
+  webCardStacked: {
+    width: '100%',
+  },
+  webCardTitle: {
+    fontSize: 15,
+    fontFamily: 'Anton_400Regular',
+    letterSpacing: 0.2,
+    marginBottom: 6,
+  },
+  webCardBody: {
+    fontSize: 12.5,
+    lineHeight: 18,
   },
 });

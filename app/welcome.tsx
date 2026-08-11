@@ -287,30 +287,11 @@ export default function WelcomeScreen() {
         />
       )}
 
-      {/* Native: giant ghost watermark brand text. Web: a prominent
-          3D-look gradient wordmark instead, matching the reference's
-          extruded blue-to-green "SOKOPRICE" logo — a flat Text with a
-          CSS gradient fill + layered text-shadow standing in for real
-          extrusion, reusing the Anton font already loaded. */}
-      {isWeb ? (
-        <View style={styles.webLogoWrap} pointerEvents="none">
-          <Text
-            style={[
-              styles.webLogoText,
-              {
-                backgroundImage: `linear-gradient(135deg, ${colors.navy[600]}, ${colors.green[400]})`,
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                color: 'transparent',
-                textShadow: '2px 3px 0 rgba(13,27,42,0.18), 5px 8px 14px rgba(13,27,42,0.15)',
-              } as any,
-            ]}
-            numberOfLines={1}
-          >
-            SOKOPRICE
-          </Text>
-        </View>
-      ) : (
+      {/* Native only: giant ghost watermark brand text. Web skips this
+          entirely — the reference video already has its own "SOKOPRICE"
+          wordmark baked into the footage, so an overlaid one would just
+          duplicate it. */}
+      {!isWeb && (
         <View style={styles.ghostWrap} pointerEvents="none">
           <Text
             style={[
@@ -458,17 +439,6 @@ const styles = StyleSheet.create({
     fontSize: 130,
     fontFamily: 'Anton_400Regular',
     letterSpacing: -2,
-  },
-  webLogoWrap: {
-    position: 'absolute',
-    top: '9%',
-    right: '6%',
-    zIndex: 60,
-  },
-  webLogoText: {
-    fontSize: 'clamp(32px, 5.5vw, 64px)' as any,
-    fontFamily: 'Anton_400Regular',
-    letterSpacing: -0.5,
   },
   brandLabel: {
     position: 'absolute',
